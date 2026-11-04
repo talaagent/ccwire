@@ -17,9 +17,9 @@ exclude = ["tests/corpus", "tests/corpus.rs"]
 
 [features]
 default = []
-# The process, session and query layers (tokio). Empty until they land: the
-# `protocol` module never needs it.
-runtime = []
+# The async layers over tokio: the framing's async reader and writer, and
+# the session core. The `protocol` module and the sync framing never need it.
+runtime = ["dep:tokio"]
 
 # Declared here rather than inherited: the workspace's serde_json turns on
 # `preserve_order` and `float_roundtrip`, which ccwire doesn't need (frames
@@ -28,6 +28,26 @@ runtime = []
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+# Only what the session core uses: async I/O traits and buffering (io-util),
+# its channels (sync) and its reader/writer tasks (rt). Not the workspace's
+# tokio, which turns on most of tokio.
+tokio = { version = "1", default-features = false, features = [
+    "io-util",
+    "sync",
+    "rt",
+], optional = true }
+
+[dev-dependencies]
+# The tests' runtimes (current-thread and multi-thread) and their hang
+# guard.
+tokio = { version = "1", default-features = false, features = [
+    "io-util",
+    "sync",
+    "rt",
+    "rt-multi-thread",
+    "macros",
+    "time",
+] }
 
 [lints]
 workspace = true

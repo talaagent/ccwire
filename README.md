@@ -4,8 +4,10 @@ A Rust SDK for [Claude Code](https://docs.claude.com/en/docs/claude-code): it
 drives the `claude` CLI over its stream-json protocol, the way the official
 TypeScript and Python Agent SDKs do.
 
-Status: early. This release is the protocol layer only, checked against
-Claude Code 2.1.296 (`ccwire::TESTED_CLI_VERSION`).
+Status: early. This release has the protocol layer, a session's command
+line (`Options`), the line framing and the session core, checked against Claude Code 2.1.296
+(`ccwire::TESTED_CLI_VERSION`). Spawning and reaping the `claude` process,
+`query()` and permission/hook/MCP helpers come next.
 
 ## `ccwire::protocol`
 
@@ -53,13 +55,56 @@ fn on_line(line: &str) {
 }
 ```
 
+## `ccwire::framing`
+
+One JSON frame per line. `LineReader` (sync) and `AsyncLineReader` split a
+byte stream into lines under a maximum length (64 MiB by default): a longer
+line is skipped and reported, and reading goes on. `FrameReader` turns lines
+into `Inbound` frames and never fails on content: garbage, a cut-off last
+line or an oversized line comes out as `Inbound::Malformed` (a `result` among
+them still ends the turn). Every line carries the byte offset past it, so a
+reader can resume a file where it stopped. `FrameWriter` writes frames.
+
+## `ccwire::session` (feature `runtime`)
+
+A session over any `AsyncRead` (the CLI's output) and `AsyncWrite` (its
+input), not tied to a child process:
+
+```rust,ignore
+use ccwire::{protocol::Inbound, session::Session};
+
+let mut session = Session::new(child_stdout, child_stdin);
+session.send("hi").await?;
+while let Some(frame) = session.next().await {
+    let frame = frame?;
+    if frame.ends_turn() {
+        break;
+    }
+}
+session.interrupt().await?; // a control round trip
+session.close().await?;
+```
+
+- Control round trips: `request` (with `interrupt`, `set_model`,
+  `set_permission_mode`, `stop_task` and `request_raw` on top) gets a fresh
+  `request_id` and resolves on the matching `control_response`.
+- The CLI's own control requests (`can_use_tool`, ...) go to a
+  `ControlHandler`, each on its own task, or come out of the stream to answer
+  with `respond`. A `control_cancel_request` aborts the handler.
+- `SessionState` (`Idle`, `InTurn`, `Closed`), watchable.
+- The run-end rule: `finish()` closes the input at once without callbacks,
+  and once idle with them.
+- One writer task, so dropping a `send` or `request` future never leaves half
+  a line; dropping the `Session` aborts its tasks.
+
 ## Features
 
-- `runtime`: the process and session layers (tokio). Reserved; empty for now.
+- `runtime` (off by default): the async framing and the session core, on
+  tokio (`io-util`, `sync`, `rt`).
 
 ## Dependencies
 
-`serde`, `serde_json` and `thiserror`.
+`serde`, `serde_json` and `thiserror`; `tokio` with `runtime`.
 
 ## License
 

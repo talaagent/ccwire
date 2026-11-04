@@ -1,10 +1,16 @@
 //! A Rust SDK for Claude Code.
 //!
-//! ccwire drives the `claude` CLI over its stream-json protocol. This
-//! release has the protocol types ([`protocol`]): pure data and serde,
-//! no I/O and no async runtime, so anything that reads or writes stream-json
-//! (a transcript viewer, a log analyzer, a process supervisor) can use them;
-//! and a session's command line ([`Options`]), built without running it.
+//! ccwire drives the `claude` CLI over its stream-json protocol.
+//!
+//! - [`protocol`]: the protocol types, pure data and serde, no I/O and no
+//!   async runtime, so anything that reads or writes stream-json (a
+//!   transcript viewer, a log analyzer, a process supervisor) can use them.
+//! - [`Options`]: a session's command line, built without running it.
+//! - [`framing`]: one JSON frame per line, with a bounded line length (a
+//!   sync reader always; the async reader and writer with `runtime`).
+//! - `session` (feature `runtime`): a session over any `AsyncRead` and
+//!   `AsyncWrite` (user messages, the frame stream, control round trips,
+//!   interrupt, the run-end rule), not tied to a child process.
 //!
 //! ```
 //! use ccwire::protocol::{Frame, Inbound, Message};
@@ -17,8 +23,13 @@
 //! }
 //! ```
 
+extern crate alloc;
+
+pub mod framing;
 pub mod options;
 pub mod protocol;
+#[cfg(feature = "runtime")]
+pub mod session;
 
 pub use options::Options;
 

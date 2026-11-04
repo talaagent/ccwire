@@ -67,6 +67,11 @@ pub enum Control {
 
 /// An [`Inbound`] split by who consumes it.
 #[derive(Debug, Clone, PartialEq)]
+#[allow(
+    clippy::large_enum_variant,
+    reason = "one per line read, moved once; and its size depends on serde_json's features \
+              (a build with `preserve_order` makes it lopsided), so not an `expect`"
+)]
 pub enum Frame {
     Message(Message),
     Control(Control),
