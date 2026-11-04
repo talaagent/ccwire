@@ -1,9 +1,10 @@
 //! A Rust SDK for Claude Code.
 //!
 //! ccwire drives the `claude` CLI over its stream-json protocol. This
-//! release has the protocol types only ([`protocol`]): pure data and serde,
+//! release has the protocol types ([`protocol`]): pure data and serde,
 //! no I/O and no async runtime, so anything that reads or writes stream-json
-//! (a transcript viewer, a log analyzer, a process supervisor) can use them.
+//! (a transcript viewer, a log analyzer, a process supervisor) can use them;
+//! and a session's command line ([`Options`]), built without running it.
 //!
 //! ```
 //! use ccwire::protocol::{Frame, Inbound, Message};
@@ -16,7 +17,10 @@
 //! }
 //! ```
 
+pub mod options;
 pub mod protocol;
+
+pub use options::Options;
 
 /// The Claude Code version the golden corpus was recorded with: the
 /// protocol these types are checked against.
