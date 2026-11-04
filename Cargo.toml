@@ -1,0 +1,33 @@
+[package]
+name = "ccwire"
+description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
+version.workspace = true
+edition.workspace = true
+# Its own, not the workspace's: the crate is meant to move to its own repo.
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/macalinao/ccwire"
+authors = ["Ian Macalinao <github@igm.pub>"]
+rust-version.workspace = true
+publish.workspace = true
+keywords = ["claude", "claude-code", "agent", "sdk"]
+categories = ["api-bindings"]
+# The golden corpus (and scrub.py, its tool) stays in the repo; its test
+# goes with it, as it include_str!s the corpus.
+exclude = ["tests/corpus", "tests/corpus.rs"]
+
+[features]
+default = []
+# The process, session and query layers (tokio). Empty until they land: the
+# `protocol` module never needs it.
+runtime = []
+
+# Declared here rather than inherited: the workspace's serde_json turns on
+# `preserve_order` and `float_roundtrip`, which ccwire doesn't need (frames
+# compare as `Value`s, so key order and the last float digit don't matter).
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[lints]
+workspace = true
