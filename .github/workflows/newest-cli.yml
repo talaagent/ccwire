@@ -55,7 +55,7 @@ jobs:
             echo "- TESTED_CLI_VERSION: \`$tested\`"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$newest" != "$tested" ]; then
-            echo "::warning::claude $newest is newer than TESTED_CLI_VERSION $tested; re-record the corpus in tala-agent's crates/ccwire"
+            echo "::warning::claude $newest differs from TESTED_CLI_VERSION $tested; re-record the corpus in tala-agent's crates/ccwire"
           fi
 
       - name: Check that every to_argv flag is in claude --help
