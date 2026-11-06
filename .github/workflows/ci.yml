@@ -60,7 +60,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.features.name }}
-      - run: cargo clippy --all-targets ${{ matrix.features.flags }} -- -D warnings
+      - run: cargo clippy --workspace --all-targets ${{ matrix.features.flags }} -- -D warnings
 
   test:
     name: test (${{ matrix.features.name }})
@@ -84,8 +84,8 @@ jobs:
         with:
           key: ${{ matrix.features.name }}
       # Includes tests/corpus.rs, the golden corpus test.
-      - run: cargo test --all-targets ${{ matrix.features.flags }}
-      - run: cargo test --doc ${{ matrix.features.flags }}
+      - run: cargo test --workspace --all-targets ${{ matrix.features.flags }}
+      - run: cargo test --workspace --doc ${{ matrix.features.flags }}
 
   msrv:
     name: MSRV
@@ -136,7 +136,7 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       - uses: Swatinem/rust-cache@v2
-      - run: cargo doc --no-deps --all-features
+      - run: cargo doc --workspace --no-deps --all-features
 
   deny:
     name: cargo-deny
