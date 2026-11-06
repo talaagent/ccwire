@@ -1,4 +1,4 @@
-# CI: fmt, clippy, tests, MSRV, docs and cargo-deny.
+# CI: fmt, clippy, tests, MSRV, docs, cargo-deny and nix flake check.
 #
 # The private gate: every job has `if: ${{ !github.event.repository.private }}`.
 # While the repo is private (where Actions minutes cost money) each job is
@@ -60,7 +60,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.features.name }}
-      - run: cargo clippy --workspace --all-targets ${{ matrix.features.flags }} -- -D warnings
+      - run: cargo clippy --workspace --all-targets --locked ${{ matrix.features.flags }} -- -D warnings
       # Each crate's library on its own: over the workspace, feature
       # unification turns on other crates' tokio (and other) features, so a
       # feature a crate uses but doesn't declare would still build.
@@ -89,8 +89,8 @@ jobs:
         with:
           key: ${{ matrix.features.name }}
       # Includes tests/corpus.rs, the golden corpus test.
-      - run: cargo test --workspace --all-targets ${{ matrix.features.flags }}
-      - run: cargo test --workspace --doc ${{ matrix.features.flags }}
+      - run: cargo test --workspace --all-targets --locked ${{ matrix.features.flags }}
+      - run: cargo test --workspace --doc --locked ${{ matrix.features.flags }}
 
   msrv:
     name: MSRV
@@ -112,7 +112,7 @@ jobs:
           fi
           echo "MSRV: $msrv"
           echo "version=$msrv" >> "$GITHUB_OUTPUT"
-      # No Cargo.lock is committed: resolve with a current cargo, whose
+      # Re-resolve Cargo.lock (it is pinned for the current toolchain) with a current cargo, whose
       # rust-version-aware resolver (resolver 3, edition 2024) picks
       # dependency versions that still build on the MSRV.
       # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
@@ -155,3 +155,15 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check
+
+  nix:
+    name: nix flake check
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      # Builds and tests the workspace (every feature) in the Nix sandbox,
+      # with nixpkgs' Rust, and evaluates the dev shell.
+      - run: nix flake check -L
