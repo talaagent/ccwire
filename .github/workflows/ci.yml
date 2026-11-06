@@ -1,0 +1,151 @@
+# CI: fmt, clippy, tests, MSRV, docs and cargo-deny.
+#
+# The private gate: every job has `if: ${{ !github.event.repository.private }}`.
+# While the repo is private (where Actions minutes cost money) each job is
+# skipped, and a skipped job uses no minutes. The day the repo is made public
+# the condition turns true and the jobs run, with no further commit.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  # The toolchain the crate is developed against: tala-agent's
+  # rust-toolchain.toml. Bump the two together.
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  fmt:
+    name: rustfmt
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: clippy (${{ matrix.features.name }})
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - { name: default, flags: "" }
+          - { name: all-features, flags: "--all-features" }
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.features.name }}
+      - run: cargo clippy --all-targets ${{ matrix.features.flags }} -- -D warnings
+
+  test:
+    name: test (${{ matrix.features.name }})
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - { name: default, flags: "" }
+          # `runtime` adds the framing's async half and the session tests
+          # over the fake CLI (tests/fake_claude).
+          - { name: all-features, flags: "--all-features" }
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.features.name }}
+      # Includes tests/corpus.rs, the golden corpus test.
+      - run: cargo test --all-targets ${{ matrix.features.flags }}
+      - run: cargo test --doc ${{ matrix.features.flags }}
+
+  msrv:
+    name: MSRV
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Read rust-version from Cargo.toml
+        id: msrv
+        run: |
+          if grep -Eq '^rust-version\.workspace|^rust-version *= *\{' Cargo.toml; then
+            echo "::error::Cargo.toml inherits rust-version from a workspace; this repo needs an explicit rust-version = \"x.y\""
+            exit 1
+          fi
+          msrv=$(sed -n 's/^rust-version *= *"\(.*\)"/\1/p' Cargo.toml)
+          if [ -z "$msrv" ]; then
+            echo "::error::no rust-version = \"...\" in Cargo.toml"
+            exit 1
+          fi
+          echo "MSRV: $msrv"
+          echo "version=$msrv" >> "$GITHUB_OUTPUT"
+      # No Cargo.lock is committed: resolve with a current cargo, whose
+      # rust-version-aware resolver (resolver 3, edition 2024) picks
+      # dependency versions that still build on the MSRV.
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - run: cargo generate-lockfile
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs the MSRV (rust-version)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo +${{ steps.msrv.outputs.version }} build --all-features --locked
+      - run: cargo +${{ steps.msrv.outputs.version }} build --locked
+
+  doc:
+    name: docs
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -D warnings
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --no-deps --all-features
+
+  deny:
+    name: cargo-deny
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # Licenses (permissive only), advisories, bans and sources, over every
+      # feature: see deny.toml.
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
