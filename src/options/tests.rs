@@ -209,8 +209,8 @@ fn tool_lists() {
 #[test]
 fn add_dirs() {
     check(
-        &Options::new().add_dir("/srv/a").add_dir("/srv/my dir"),
-        &["--add-dir", "/srv/a", "--add-dir", "/srv/my dir"],
+        &Options::new().add_dir("/data/a").add_dir("/data/my dir"),
+        &["--add-dir", "/data/a", "--add-dir", "/data/my dir"],
     );
 }
 
@@ -493,7 +493,7 @@ fn empty_and_spaced_values() {
 #[test]
 fn non_utf8_paths() {
     use std::os::unix::ffi::OsStringExt;
-    let dir = OsString::from_vec(b"/srv/\xff".to_vec());
+    let dir = OsString::from_vec(b"/data/\xff".to_vec());
     let a = Options::new().add_dir(dir.clone()).to_argv();
     assert_eq!(a[a.len() - 2..], [OsString::from("--add-dir"), dir]);
 }
@@ -734,11 +734,11 @@ fn to_argv_is_pure() {
     assert_eq!(o.clone().to_argv(), o.to_argv());
 }
 
-/// Every `claude` flag tala-agent passed when this module was written (its
-/// `"--…"` literals in `crates/`, intersected with `claude --help` 2.1.303
-/// plus the hidden `--permission-prompt-tool`): each one renders.
+/// Every known `claude` flag the builder covers (those `claude --help`
+/// 2.1.303 lists, plus the hidden `--permission-prompt-tool`): each one
+/// renders.
 #[test]
-fn every_flag_tala_passes() {
+fn every_known_flag_renders() {
     let all = Options::new()
         .input_format(InputFormat::StreamJson)
         .include_partial_messages(true)

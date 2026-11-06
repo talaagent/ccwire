@@ -21,7 +21,7 @@ const FILES: &[(&str, &str)] = &[
         "partial-tool.jsonl",
         include_str!("corpus/partial-tool.jsonl"),
     ),
-    ("persona.jsonl", include_str!("corpus/persona.jsonl")),
+    ("multiturn.jsonl", include_str!("corpus/multiturn.jsonl")),
     ("stream.jsonl", include_str!("corpus/stream.jsonl")),
     (
         "subagents-background.jsonl",
