@@ -38,7 +38,7 @@ def main() -> int:
     with open(help_path, encoding="utf-8") as f:
         help_text = f.read()
     if not flags:
-        print("::error::found no flags in to_argv; has src/options.rs moved?")
+        print("::error::found no flags in to_argv; has crates/ccwire/src/options.rs moved?")
         return 1
     missing = []
     for flag in flags:

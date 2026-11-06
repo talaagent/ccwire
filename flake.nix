@@ -13,7 +13,7 @@
         "aarch64-darwin"
       ];
       forAllSystems = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
-      manifest = (nixpkgs.lib.importTOML ./Cargo.toml).package;
+      manifest = (nixpkgs.lib.importTOML ./crates/ccwire/Cargo.toml).package;
     in
     {
       # The whole workspace, built and tested (every feature) in the sandbox.

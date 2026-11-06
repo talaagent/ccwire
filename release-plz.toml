@@ -22,10 +22,10 @@ pr_draft = false
 name = "ccwire"
 git_tag_name = "v{{ version }}"
 git_release_name = "v{{ version }}"
-changelog_path = "CHANGELOG.md"
+changelog_path = "crates/ccwire/CHANGELOG.md"
 
 [[package]]
 name = "ccwire-oauth"
 git_tag_name = "ccwire-oauth-v{{ version }}"
 git_release_name = "ccwire-oauth-v{{ version }}"
-changelog_path = "ccwire-oauth/CHANGELOG.md"
+changelog_path = "crates/ccwire-oauth/CHANGELOG.md"

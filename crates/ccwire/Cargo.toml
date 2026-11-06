@@ -1,0 +1,54 @@
+[package]
+name = "ccwire"
+description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
+version = "0.1.1"
+edition.workspace = true
+license.workspace = true
+# The repository README (a symlink): the crate's README on crates.io.
+readme = "README.md"
+repository.workspace = true
+documentation = "https://docs.rs/ccwire"
+authors.workspace = true
+rust-version.workspace = true
+keywords = ["claude", "claude-code", "agent", "sdk"]
+categories = ["api-bindings"]
+# The golden corpus (and scrub.py, its tool) stays in the repo; its test
+# goes with it, as it include_str!s the corpus.
+exclude = ["tests/corpus", "tests/corpus.rs"]
+
+[features]
+default = []
+# The async layers over tokio: the framing's async reader and writer, and
+# the session core. The `protocol` module and the sync framing never need it.
+runtime = ["dep:tokio"]
+# Logs every `Other` and `Malformed` frame (debug and warn, with its type),
+# besides counting them (`protocol::stats`, always on).
+tracing = ["dep:tracing"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+# Only what the session core uses: async I/O traits and buffering (io-util),
+# its channels (sync) and its reader/writer tasks (rt).
+tokio = { workspace = true, features = [
+    "io-util",
+    "sync",
+    "rt",
+], optional = true }
+tracing = { workspace = true, optional = true }
+
+[dev-dependencies]
+# The tests' runtimes (current-thread and multi-thread) and their hang
+# guard.
+tokio = { workspace = true, features = [
+    "io-util",
+    "sync",
+    "rt",
+    "rt-multi-thread",
+    "macros",
+    "time",
+] }
+
+[lints]
+workspace = true

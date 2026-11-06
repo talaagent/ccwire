@@ -30,7 +30,11 @@ confidence-threshold = 0.9
 # The list is the policy, not an inventory: no warning for an allowed
 # license no dependency uses (yet).
 unused-allowed-license = "allow"
-exceptions = []
+exceptions = [
+    # Mozilla's root certificates as data (reqwest -> rustls-platform-verifier,
+    # ccwire-oauth): CDLA-Permissive-2.0, a permissive data license.
+    { crate = "webpki-root-certs", allow = ["CDLA-Permissive-2.0"] },
+]
 
 [licenses.private]
 ignore = false
