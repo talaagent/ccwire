@@ -12,8 +12,19 @@ rust-version = "1.85"
 keywords = ["claude", "claude-code", "agent", "sdk"]
 categories = ["api-bindings"]
 # The golden corpus (and scrub.py, its tool) stays in the repo; its test
-# goes with it, as it include_str!s the corpus.
-exclude = ["tests/corpus", "tests/corpus.rs"]
+# goes with it, as it include_str!s the corpus. So do the repo's CI, release
+# and Nix files.
+exclude = [
+    "tests/corpus",
+    "tests/corpus.rs",
+    ".github",
+    ".gitignore",
+    "clippy.toml",
+    "deny.toml",
+    "release-plz.toml",
+    "flake.nix",
+    "flake.lock",
+]
 
 [features]
 default = []
