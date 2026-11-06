@@ -4,8 +4,9 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 
 use super::{
-    AssistantMessage, ControlCancelRequest, ControlRequest, ControlResponse, Message,
-    RateLimitEvent, ResultMessage, StreamEvent, System, UserMessage, from_fields, str_of, tagged,
+    AssistantMessage, CommandLifecycle, ControlCancelRequest, ControlRequest, ControlResponse,
+    Message, RateLimitEvent, ResultMessage, StreamEvent, System, UserMessage, from_fields, str_of,
+    tagged,
 };
 
 /// One line of stream-json, by `type`.
@@ -22,6 +23,7 @@ pub enum Inbound {
     Result(ResultMessage),
     StreamEvent(StreamEvent),
     RateLimitEvent(RateLimitEvent),
+    CommandLifecycle(CommandLifecycle),
     ControlRequest(ControlRequest),
     ControlResponse(ControlResponse),
     ControlCancelRequest(ControlCancelRequest),
@@ -100,6 +102,7 @@ impl Inbound {
     /// Parse a JSON object. Never fails.
     pub fn from_object(obj: Map<String, Value>) -> Self {
         let Some(type_) = str_of(&obj, "type") else {
+            super::stats::other("");
             return Self::Other {
                 type_: String::new(),
                 raw: Value::Object(obj),
@@ -113,10 +116,12 @@ impl Inbound {
             "result" => from_fields(&obj, skip).map(Self::Result),
             "stream_event" => from_fields(&obj, skip).map(Self::StreamEvent),
             "rate_limit_event" => from_fields(&obj, skip).map(Self::RateLimitEvent),
+            "command_lifecycle" => from_fields(&obj, skip).map(Self::CommandLifecycle),
             "control_request" => from_fields(&obj, skip).map(Self::ControlRequest),
             "control_response" => from_fields(&obj, skip).map(Self::ControlResponse),
             "control_cancel_request" => from_fields(&obj, skip).map(Self::ControlCancelRequest),
             _ => {
+                super::stats::other(type_);
                 return Self::Other {
                     type_: type_.to_owned(),
                     raw: Value::Object(obj),
@@ -125,11 +130,15 @@ impl Inbound {
         };
         match parsed {
             Ok(v) => v,
-            Err(e) => Self::Malformed {
-                type_: type_.to_owned(),
-                error: e.to_string(),
-                raw: Value::Object(obj),
-            },
+            Err(e) => {
+                let error = e.to_string();
+                super::stats::malformed(type_, &error);
+                Self::Malformed {
+                    type_: type_.to_owned(),
+                    error,
+                    raw: Value::Object(obj),
+                }
+            }
         }
     }
 
@@ -142,6 +151,7 @@ impl Inbound {
             Self::Result(_) => "result",
             Self::StreamEvent(_) => "stream_event",
             Self::RateLimitEvent(_) => "rate_limit_event",
+            Self::CommandLifecycle(_) => "command_lifecycle",
             Self::ControlRequest(_) => "control_request",
             Self::ControlResponse(_) => "control_response",
             Self::ControlCancelRequest(_) => "control_cancel_request",
@@ -174,6 +184,7 @@ impl Inbound {
             Self::Result(m) => tagged("type", t, m),
             Self::StreamEvent(m) => tagged("type", t, m),
             Self::RateLimitEvent(m) => tagged("type", t, m),
+            Self::CommandLifecycle(m) => tagged("type", t, m),
             Self::ControlRequest(m) => tagged("type", t, m),
             Self::ControlResponse(m) => tagged("type", t, m),
             Self::ControlCancelRequest(m) => tagged("type", t, m),
@@ -191,6 +202,7 @@ impl Inbound {
             Self::Result(m) => Frame::Message(Message::Result(m)),
             Self::StreamEvent(m) => Frame::Message(Message::StreamEvent(m)),
             Self::RateLimitEvent(m) => Frame::Message(Message::RateLimitEvent(m)),
+            Self::CommandLifecycle(m) => Frame::Message(Message::CommandLifecycle(m)),
             Self::Other { type_, raw } => Frame::Message(Message::Other { type_, raw }),
             Self::Malformed { type_, error, raw } => {
                 Frame::Message(Message::Malformed { type_, error, raw })
@@ -223,6 +235,7 @@ impl From<Message> for Inbound {
             Message::Result(m) => Self::Result(m),
             Message::StreamEvent(m) => Self::StreamEvent(m),
             Message::RateLimitEvent(m) => Self::RateLimitEvent(m),
+            Message::CommandLifecycle(m) => Self::CommandLifecycle(m),
             Message::Other { type_, raw } => Self::Other { type_, raw },
             Message::Malformed { type_, error, raw } => Self::Malformed { type_, error, raw },
         }
@@ -283,6 +296,7 @@ impl Message {
             Self::Result(_) => "result",
             Self::StreamEvent(_) => "stream_event",
             Self::RateLimitEvent(_) => "rate_limit_event",
+            Self::CommandLifecycle(_) => "command_lifecycle",
             Self::Other { type_, .. } | Self::Malformed { type_, .. } => type_,
         }
     }

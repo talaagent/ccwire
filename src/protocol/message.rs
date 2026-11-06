@@ -1,10 +1,10 @@
 //! The conversation: [`Message`], and the `user`, `assistant`,
-//! `stream_event` and `rate_limit_event` frames.
+//! `stream_event`, `rate_limit_event` and `command_lifecycle` frames.
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Number, Value};
 
-use super::{ContentBlock, Extra, Field, MessageContent, ResultMessage, System, Usage};
+use super::{ContentBlock, Extra, Field, MessageContent, Partial, ResultMessage, System, Usage};
 
 /// What a caller consumes: every frame but the control channel's.
 ///
@@ -19,6 +19,7 @@ pub enum Message {
     Result(ResultMessage),
     StreamEvent(StreamEvent),
     RateLimitEvent(RateLimitEvent),
+    CommandLifecycle(CommandLifecycle),
     /// A `type` this version doesn't model, as it came.
     Other {
         /// Its `type` (empty if it had none).
@@ -129,6 +130,11 @@ pub struct StreamEvent {
     pub session_id: Field<String>,
     #[serde(default, skip_serializing_if = "Field::is_absent")]
     pub uuid: Field<String>,
+    /// The API message the event belongs to (on every event of it, so
+    /// deltas can be told apart by message).
+    #[serde(default, skip_serializing_if = "Field::is_absent")]
+    pub api_message_id: Field<String>,
+    /// `ttft_ms`, `thinking_display` and the rest.
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -138,6 +144,36 @@ impl StreamEvent {
     pub fn event_type(&self) -> Option<&str> {
         self.event.get("type").and_then(Value::as_str)
     }
+
+    /// Whether a subagent's (a non-empty `parent_tool_use_id`).
+    pub fn is_subagent(&self) -> bool {
+        self.parent_tool_use_id
+            .as_deref()
+            .is_some_and(|s| !s.is_empty())
+    }
+
+    /// The event, if it is one a reply streamer reads (see [`Partial`]).
+    pub fn partial(&self) -> Option<Partial> {
+        Partial::of_event(&self.event)
+    }
+}
+
+/// `type: command_lifecycle`: what became of a user message sent with a
+/// `uuid` (streaming input): `queued`, `started`, `completed` (the CLI
+/// may add states: [`Self::state`] is an open set).
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub struct CommandLifecycle {
+    /// The user message's `uuid`.
+    #[serde(default, skip_serializing_if = "Field::is_absent")]
+    pub command_uuid: Field<String>,
+    #[serde(default, skip_serializing_if = "Field::is_absent")]
+    pub state: Field<String>,
+    #[serde(default, skip_serializing_if = "Field::is_absent")]
+    pub session_id: Field<String>,
+    #[serde(default, skip_serializing_if = "Field::is_absent")]
+    pub uuid: Field<String>,
+    #[serde(flatten)]
+    pub extra: Extra,
 }
 
 /// `type: rate_limit_event`: the rate limit status changed.

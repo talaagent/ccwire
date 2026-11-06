@@ -725,6 +725,45 @@ async fn a_queued_message_keeps_the_run_open() {
     .await;
 }
 
+/// Pins today's behaviour for a message the CLI `queued` and then never
+/// `started` nor `completed` (no CLI does that yet): it stays in flight,
+/// so the session stays in a turn after the result, `finish` never closes
+/// the input, and only the CLI's exit ends it, as mid-turn.
+#[tokio::test]
+async fn a_message_queued_and_never_started_stays_in_flight() {
+    within(async {
+        let (mut s, mut cli) = pair(Session::builder().answers_control_requests(true));
+        s.send("one").await.unwrap();
+        let one = recv_uuid(&mut cli).await;
+        cli.init("s").await;
+        cli.emit(lifecycle(&one, "started")).await;
+        s.send("two").await.unwrap();
+        let two = recv_uuid(&mut cli).await;
+        cli.emit(lifecycle(&two, "queued")).await;
+        s.finish();
+        cli.result("one done").await;
+        cli.emit(lifecycle(&one, "completed")).await;
+        // init, started, queued, result, completed.
+        for _ in 0..5 {
+            next(&mut s).await;
+        }
+        assert_eq!(s.state(), SessionState::InTurn, "`two` is in flight");
+        assert!(!s.is_idle());
+        // The input stays open: nothing more comes, and no EOF.
+        assert!(
+            tokio::time::timeout(Duration::from_millis(100), cli.recv())
+                .await
+                .is_err(),
+            "finish must not close the input while `two` is in flight"
+        );
+        cli.exit();
+        assert!(matches!(s.next().await, Some(Err(Error::EndedMidTurn))));
+        assert!(s.next().await.is_none());
+        assert_eq!(s.state(), SessionState::Closed);
+    })
+    .await;
+}
+
 #[tokio::test]
 async fn an_absorbed_message_ends_with_its_turn() {
     within(async {
