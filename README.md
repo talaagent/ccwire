@@ -9,6 +9,23 @@ line (`Options`), the line framing and the session core, checked against Claude 
 (`ccwire::TESTED_CLI_VERSION`). Spawning and reaping the `claude` process,
 `query()` and permission/hook/MCP helpers come next.
 
+## Install
+
+```sh
+cargo add ccwire                     # the protocol types and sync framing
+cargo add ccwire --features runtime  # plus the async framing and the session core
+```
+
+Until the first crates.io release, use the git repository:
+
+```toml
+[dependencies]
+ccwire = { git = "https://github.com/talaagent/ccwire", features = ["runtime"] }
+```
+
+The workspace also has [`ccwire-oauth`](https://github.com/talaagent/ccwire/tree/main/ccwire-oauth), a typed client for
+the Claude account endpoints an OAuth login can call.
+
 ## `ccwire::protocol`
 
 The stream-json protocol as Rust types: pure data and serde, with no I/O and

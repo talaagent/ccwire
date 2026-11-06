@@ -24,6 +24,19 @@ are not publicly documented and may change: unknown fields land in each
 type's `extra` map, and a field that is missing, `null` or of an
 unexpected type reads as `None` instead of failing the call.
 
+## Install
+
+```sh
+cargo add ccwire-oauth
+```
+
+Until the first crates.io release, use the git repository:
+
+```toml
+[dependencies]
+ccwire-oauth = { git = "https://github.com/talaagent/ccwire" }
+```
+
 ## Example
 
 ```rust,no_run
