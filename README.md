@@ -23,7 +23,7 @@ Until the first crates.io release, use the git repository:
 ccwire = { git = "https://github.com/talaagent/ccwire", features = ["runtime"] }
 ```
 
-The workspace also has [`ccwire-oauth`](https://github.com/talaagent/ccwire/tree/main/ccwire-oauth), a typed client for
+The workspace also has [`ccwire-oauth`](https://github.com/talaagent/ccwire/tree/main/crates/ccwire-oauth), a typed client for
 the Claude account endpoints an OAuth login can call.
 
 ## `ccwire::protocol`

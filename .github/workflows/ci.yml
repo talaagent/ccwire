@@ -77,7 +77,7 @@ jobs:
         features:
           - { name: default, flags: "" }
           # `runtime` adds the framing's async half and the session tests
-          # over the fake CLI (tests/fake_claude).
+          # over the fake CLI (crates/ccwire/tests/fake_claude).
           - { name: all-features, flags: "--all-features" }
     steps:
       - uses: actions/checkout@v7
@@ -88,7 +88,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.features.name }}
-      # Includes tests/corpus.rs, the golden corpus test.
+      # Includes crates/ccwire/tests/corpus.rs, the golden corpus test.
       - run: cargo test --workspace --all-targets --locked ${{ matrix.features.flags }}
       - run: cargo test --workspace --doc --locked ${{ matrix.features.flags }}
 
@@ -101,13 +101,17 @@ jobs:
       - name: Read rust-version from Cargo.toml
         id: msrv
         run: |
-          if grep -Eq '^rust-version\.workspace|^rust-version *= *\{' Cargo.toml; then
-            echo "::error::Cargo.toml inherits rust-version from a workspace; this repo needs an explicit rust-version = \"x.y\""
-            exit 1
-          fi
+          # One MSRV, the root's [workspace.package] rust-version, which
+          # every crate inherits.
+          for manifest in crates/*/Cargo.toml; do
+            if ! grep -Eq '^rust-version\.workspace *= *true' "$manifest"; then
+              echo "::error::$manifest doesn't inherit rust-version (rust-version.workspace = true)"
+              exit 1
+            fi
+          done
           msrv=$(sed -n 's/^rust-version *= *"\(.*\)"/\1/p' Cargo.toml)
           if [ -z "$msrv" ]; then
-            echo "::error::no rust-version = \"...\" in Cargo.toml"
+            echo "::error::no rust-version = \"...\" in Cargo.toml's [workspace.package]"
             exit 1
           fi
           echo "MSRV: $msrv"
@@ -125,7 +129,7 @@ jobs:
         with:
           toolchain: ${{ steps.msrv.outputs.version }}
       - uses: Swatinem/rust-cache@v2
-      # Every crate in the workspace (they share the root's rust-version).
+      # Every crate in the workspace (they inherit the root's rust-version).
       - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --all-features --locked
       - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --locked
 

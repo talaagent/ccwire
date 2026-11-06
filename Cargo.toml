@@ -1,70 +1,43 @@
-[package]
-name = "ccwire"
-description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
-version = "0.1.1"
+# ccwire: a Rust SDK for Claude Code. `ccwire` is the stream-json protocol
+# and session core, `ccwire-oauth` a client for the Claude account endpoints
+# an OAuth login can call. Each crate keeps its own version, README and
+# exclude list; the rest is shared here.
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
 edition = "2024"
 license = "Apache-2.0"
-readme = "README.md"
 repository = "https://github.com/talaagent/ccwire"
-documentation = "https://docs.rs/ccwire"
 authors = ["Ian Macalinao <github@igm.pub>"]
+# The MSRV of every crate (CI's `msrv` job reads it from here).
 rust-version = "1.85"
-keywords = ["claude", "claude-code", "agent", "sdk"]
-categories = ["api-bindings"]
-# The golden corpus (and scrub.py, its tool) stays in the repo; its test
-# goes with it, as it include_str!s the corpus. So do the repo's CI, release
-# and Nix files.
-exclude = [
-    "tests/corpus",
-    "tests/corpus.rs",
-    ".github",
-    ".gitignore",
-    "clippy.toml",
-    "deny.toml",
-    "release-plz.toml",
-    "flake.nix",
-    "flake.lock",
-]
 
-[features]
-default = []
-# The async layers over tokio: the framing's async reader and writer, and
-# the session core. The `protocol` module and the sync framing never need it.
-runtime = ["dep:tokio"]
-# Logs every `Other` and `Malformed` frame (debug and warn, with its type),
-# besides counting them (`protocol::stats`, always on).
-tracing = ["dep:tracing"]
-
+# Each crate turns on the features it uses (`features = [...]` beside
+# `workspace = true`); the entries here only pin versions and turn default
+# features off where a crate wants them off.
+[workspace.dependencies]
+httpdate = "1"
+# reqwest's default TLS is rustls (aws-lc-rs provider, the platform's
+# roots); http2 for the API, no system proxy lookup, no cookies.
+reqwest = { version = "0.13", default-features = false, features = [
+    "rustls",
+    "http2",
+    "charset",
+] }
+serde = { version = "1", features = ["derive"] }
 # serde_json without `preserve_order` or `float_roundtrip`: frames compare
 # as `Value`s, so key order and the last float digit don't matter.
-[dependencies]
-serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-# Only what the session core uses: async I/O traits and buffering (io-util),
-# its channels (sync) and its reader/writer tasks (rt).
-tokio = { version = "1", default-features = false, features = [
-    "io-util",
-    "sync",
-    "rt",
-], optional = true }
-tracing = { version = "0.1", default-features = false, features = [
-    "std",
-], optional = true }
+tokio = { version = "1", default-features = false }
+tracing = { version = "0.1", default-features = false, features = ["std"] }
+url = "2"
+wiremock = "0.6"
+zeroize = "1"
 
-[dev-dependencies]
-# The tests' runtimes (current-thread and multi-thread) and their hang
-# guard.
-tokio = { version = "1", default-features = false, features = [
-    "io-util",
-    "sync",
-    "rt",
-    "rt-multi-thread",
-    "macros",
-    "time",
-] }
-
-[lints.clippy]
+[workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
 complexity = { level = "deny", priority = -1 }
 must_use_candidate = "allow"
@@ -83,7 +56,3 @@ await_holding_lock = "deny"
 disallowed_methods = "deny"
 disallowed_types = "deny"
 large_futures = "allow"
-
-# ccwire is the root package; the rest of the repo's crates are members.
-[workspace]
-members = ["ccwire-oauth"]

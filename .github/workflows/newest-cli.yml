@@ -43,10 +43,10 @@ jobs:
 
       - name: Compare the CLI version with TESTED_CLI_VERSION
         run: |
-          tested=$(sed -n 's/^pub const TESTED_CLI_VERSION: &str = "\(.*\)";/\1/p' src/lib.rs)
+          tested=$(sed -n 's/^pub const TESTED_CLI_VERSION: &str = "\(.*\)";/\1/p' crates/ccwire/src/lib.rs)
           newest=$(claude --version | awk '{print $1}')
           if [ -z "$tested" ]; then
-            echo "::error::no TESTED_CLI_VERSION in src/lib.rs"
+            echo "::error::no TESTED_CLI_VERSION in crates/ccwire/src/lib.rs"
             exit 1
           fi
           {
@@ -55,13 +55,13 @@ jobs:
             echo "- TESTED_CLI_VERSION: \`$tested\`"
           } >> "$GITHUB_STEP_SUMMARY"
           if [ "$newest" != "$tested" ]; then
-            echo "::warning::claude $newest differs from TESTED_CLI_VERSION $tested; re-record the corpus (tests/corpus)"
+            echo "::warning::claude $newest differs from TESTED_CLI_VERSION $tested; re-record the corpus (crates/ccwire/tests/corpus)"
           fi
 
       - name: Check that every to_argv flag is in claude --help
         run: |
           claude --help > "$RUNNER_TEMP/claude-help.txt"
-          python3 .github/scripts/check_cli_flags.py src/options.rs "$RUNNER_TEMP/claude-help.txt"
+          python3 .github/scripts/check_cli_flags.py crates/ccwire/src/options.rs "$RUNNER_TEMP/claude-help.txt"
 
       # Only with the secret: a skipped step costs nothing and needs no key.
       - name: Live turn (needs ANTHROPIC_API_KEY)
