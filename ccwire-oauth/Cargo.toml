@@ -6,9 +6,9 @@ edition = "2024"
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/talaagent/ccwire"
+documentation = "https://docs.rs/ccwire-oauth"
 authors = ["Ian Macalinao <github@igm.pub>"]
 rust-version = "1.85"
-publish = false
 keywords = ["claude", "oauth", "usage", "api-client"]
 categories = ["api-bindings"]
 # The recorded fixtures stay in the repo; the tests that include_str! them
