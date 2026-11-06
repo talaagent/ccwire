@@ -4,10 +4,11 @@ description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
 version = "0.1.1"
 edition = "2024"
 license = "Apache-2.0"
+readme = "README.md"
 repository = "https://github.com/talaagent/ccwire"
+documentation = "https://docs.rs/ccwire"
 authors = ["Ian Macalinao <github@igm.pub>"]
 rust-version = "1.85"
-publish = false
 keywords = ["claude", "claude-code", "agent", "sdk"]
 categories = ["api-bindings"]
 # The golden corpus (and scrub.py, its tool) stays in the repo; its test

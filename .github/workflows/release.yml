@@ -1,0 +1,114 @@
+# Releases with release-plz (release-plz.toml): a release PR on each push to
+# main, and crates.io publishing once one is merged.
+#
+# Publishing uses crates.io trusted publishing (OIDC): the `release` job,
+# in the `release` environment, trades a GitHub OIDC token for a short-lived
+# crates.io token (rust-lang/crates-io-auth-action). There is no registry
+# token secret. Each crate's trusted publisher on crates.io is: owner
+# `talaagent`, repository `ccwire`, workflow `release.yml`, environment
+# `release`. Trusted publishing only works for a crate that already exists,
+# so each crate's first publish is a manual `cargo publish`.
+#
+# The release PR needs the organization and repository to allow GitHub
+# Actions to create pull requests; until then set no RELEASE_PR variable
+# and the job is skipped. Once allowed: `gh variable set RELEASE_PR --body
+# true`.
+
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Same pin as ci.yml. Bump them together.
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  release-pr:
+    name: release PR
+    if: ${{ vars.RELEASE_PR == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: release-plz-pr-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      - uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: publish
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+    # One publish at a time; never cancel one halfway through.
+    concurrency:
+      group: release-plz-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+      # Which publishable crates have a version crates.io doesn't have yet?
+      # Only then ask for a token, so an ordinary push stays green. A crate
+      # not on crates.io at all is skipped with a warning: trusted
+      # publishing can't create a crate, its first publish is manual.
+      - name: Versions not on crates.io yet
+        id: pending
+        run: |
+          ua="User-Agent: ${GITHUB_REPOSITORY} release workflow"
+          api=https://crates.io/api/v1/crates
+          pending=""
+          while read -r name version; do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")" = 404 ]; then
+              echo "::warning::$name is not on crates.io yet: publish it once by hand (cargo publish -p $name), then add its trusted publisher"
+              continue
+            fi
+            code=$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
+            echo "$name $version: crates.io $code"
+            if [ "$code" = 404 ]; then pending="$pending $name@$version"; fi
+          done < <(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"')
+          echo "pending=${pending# }" >> "$GITHUB_OUTPUT"
+          if [ -z "$pending" ]; then
+            echo "::notice::Nothing to publish."
+          fi
+      - name: crates.io token (trusted publishing)
+        if: ${{ steps.pending.outputs.pending != '' }}
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+      # Publishes in dependency order the versions crates.io doesn't have
+      # yet (after a release PR is merged) and tags them.
+      - name: release-plz release
+        if: ${{ steps.pending.outputs.pending != '' }}
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}

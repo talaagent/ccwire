@@ -23,7 +23,7 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   # The toolchain the crate is developed against. Bump it with
-  # release-plz.yml's.
+  # release.yml's.
   RUST_TOOLCHAIN: "1.98.1"
 
 jobs:
