@@ -16,3 +16,18 @@ git_tag_enable = true
 semver_check = true
 pr_labels = ["release"]
 pr_draft = false
+
+# Two crates: tag each its own way. ccwire keeps the `v0.1.x` tags it has
+# always had; ccwire-oauth gets `ccwire-oauth-v...` and its own changelog.
+# Both are `publish = false` for now: flip them together.
+[[package]]
+name = "ccwire"
+git_tag_name = "v{{ version }}"
+git_release_name = "v{{ version }}"
+changelog_path = "CHANGELOG.md"
+
+[[package]]
+name = "ccwire-oauth"
+git_tag_name = "ccwire-oauth-v{{ version }}"
+git_release_name = "ccwire-oauth-v{{ version }}"
+changelog_path = "ccwire-oauth/CHANGELOG.md"

@@ -61,6 +61,11 @@ jobs:
         with:
           key: ${{ matrix.features.name }}
       - run: cargo clippy --workspace --all-targets ${{ matrix.features.flags }} -- -D warnings
+      # Each crate's library on its own: over the workspace, feature
+      # unification turns on other crates' tokio (and other) features, so a
+      # feature a crate uses but doesn't declare would still build.
+      - run: cargo clippy -p ccwire --lib ${{ matrix.features.flags }} -- -D warnings
+      - run: cargo clippy -p ccwire-oauth --lib ${{ matrix.features.flags }} -- -D warnings
 
   test:
     name: test (${{ matrix.features.name }})
@@ -120,8 +125,9 @@ jobs:
         with:
           toolchain: ${{ steps.msrv.outputs.version }}
       - uses: Swatinem/rust-cache@v2
-      - run: cargo +${{ steps.msrv.outputs.version }} build --all-features --locked
-      - run: cargo +${{ steps.msrv.outputs.version }} build --locked
+      # Every crate in the workspace (they share the root's rust-version).
+      - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --all-features --locked
+      - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --locked
 
   doc:
     name: docs
