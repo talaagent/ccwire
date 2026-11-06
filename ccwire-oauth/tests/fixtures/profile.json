@@ -1,0 +1,22 @@
+{
+  "account": {
+    "uuid": "00000000-0000-4000-8000-000000000001",
+    "full_name": "Ada Example",
+    "display_name": "Ada",
+    "email": "ada@example.com",
+    "has_claude_max": true,
+    "has_claude_pro": false,
+    "created_at": "2029-05-01T12:00:00.000000Z"
+  },
+  "organization": {
+    "uuid": "00000000-0000-4000-8000-0000000000a1",
+    "name": "Example Org",
+    "organization_type": "claude_max",
+    "billing_type": "stripe_subscription",
+    "rate_limit_tier": "default_claude_max_20x",
+    "has_extra_usage_enabled": true,
+    "subscription_status": "active",
+    "subscription_created_at": "2029-05-01T12:00:00Z"
+  },
+  "application": {"uuid": "00000000-0000-4000-8000-0000000000c1", "name": "Example App", "slug": "example-app"}
+}

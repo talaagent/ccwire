@@ -558,7 +558,7 @@ mod tests {
     #[test]
     fn clean_eof_after_a_newline() {
         assert_eq!(all(LineReader::new(&b"x\n"[..])), vec![line("x", 2, true)]);
-        assert!(all(LineReader::new(&b""[..])).is_empty());
+        assert_eq!(all(LineReader::new(&b""[..])), []);
     }
 
     #[test]

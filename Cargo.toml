@@ -71,3 +71,7 @@ await_holding_lock = "deny"
 disallowed_methods = "deny"
 disallowed_types = "deny"
 large_futures = "allow"
+
+# ccwire is the root package; the rest of the repo's crates are members.
+[workspace]
+members = ["ccwire-oauth"]
