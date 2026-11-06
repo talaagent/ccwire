@@ -1,4 +1,5 @@
-//! [`Error`]: why a call failed, never with a token in it.
+//! [`Error`]: why a call failed, never with a token (or the account's
+//! personal data) in it.
 
 use alloc::string::{String, ToString};
 use core::time::Duration;
@@ -8,19 +9,32 @@ use serde_json::Value;
 /// Why a call failed.
 ///
 /// No variant holds a token: response bodies are scrubbed (see
-/// [`Error::Decode`]) and transport errors drop the URL.
+/// [`Error::Decode`]) and transport errors drop the URL. Snippets also
+/// drop personal data (emails, names, phone numbers, addresses).
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
-    /// The token was refused: HTTP 401 or 403, or (from the token endpoint)
-    /// an `invalid_grant`, which means the refresh token was revoked or has
-    /// already been rotated away. The login needs a new token.
+    /// The token was refused: HTTP 401, or (from the token endpoint) an
+    /// `invalid_grant`, which means the refresh token was revoked or has
+    /// already been rotated away. The login needs a new token (a refresh,
+    /// or a new login if refreshing gives this too).
     #[error("unauthorized (HTTP {status}{})", fmt_code(code.as_deref()))]
     Unauthorized {
         /// The HTTP status.
         status: u16,
         /// The API's error code, if the body had one (`invalid_grant`,
         /// `authentication_error`, `permission_error`, ...).
+        code: Option<String>,
+    },
+    /// HTTP 403: the token is good but may not do this (a scope it lacks,
+    /// such as an inference-only token on a profile endpoint, or a role it
+    /// lacks in the organization). Logging in again won't change it.
+    #[error("forbidden (HTTP {status}{})", fmt_code(code.as_deref()))]
+    Forbidden {
+        /// The HTTP status (403).
+        status: u16,
+        /// The API's error code, if the body had one (`permission_error`,
+        /// ...).
         code: Option<String>,
     },
     /// HTTP 429.
@@ -48,7 +62,10 @@ pub enum Error {
         status: u16,
         /// What didn't match, with any quoted value in it replaced.
         message: String,
-        /// The start of the body, with token-like values replaced.
+        /// The start of the body, with the values of token-like and
+        /// personal keys replaced, and any string that looks like a token.
+        /// That last rule is broad: ids (UUIDs) and other long unbroken
+        /// strings are replaced too.
         snippet: String,
     },
     /// The request didn't complete: connect, TLS, a timeout. The error
@@ -61,16 +78,26 @@ pub enum Error {
         /// The limit, in bytes.
         limit: usize,
     },
+    /// [`Client::refresh_and_store`](crate::Client::refresh_and_store)'s
+    /// task was cancelled before it finished (its runtime shut down).
+    #[error("the refresh task was cancelled")]
+    Cancelled,
     /// The client was misconfigured (a bad base URL, a header value).
     #[error("config: {0}")]
     Config(String),
 }
 
 impl Error {
-    /// Whether the login itself is bad (re-login needed), as opposed to a
-    /// passing failure.
+    /// Whether the login itself is bad (refresh or re-login needed), as
+    /// opposed to a passing failure. Not true for [`Error::Forbidden`].
     pub fn is_unauthorized(&self) -> bool {
         matches!(self, Self::Unauthorized { .. })
+    }
+
+    /// Whether the token was good but not allowed this call
+    /// ([`Error::Forbidden`]).
+    pub fn is_forbidden(&self) -> bool {
+        matches!(self, Self::Forbidden { .. })
     }
 
     /// Whether a later retry may succeed: rate limiting, a 5xx, a transport
@@ -101,7 +128,9 @@ const MESSAGE_LEN: usize = 200;
 const REDACTED: &str = "<redacted>";
 
 /// Object keys whose values are replaced in snippets, matched as
-/// lowercase substrings.
+/// lowercase substrings: secrets, and the personal data the profile and
+/// account endpoints carry (`email`, `email_address`, `full_name`,
+/// `display_name`, `organization_name`, ...).
 const SECRET_KEYS: &[&str] = &[
     "token",
     "secret",
@@ -111,6 +140,11 @@ const SECRET_KEYS: &[&str] = &[
     "authorization",
     "cookie",
     "credential",
+    "email",
+    "name",
+    "phone",
+    "address",
+    "birth",
 ];
 
 /// `{"error": "code", "error_description": "..."}` (OAuth) or
@@ -173,7 +207,7 @@ fn scrub_value(v: &mut Value) {
             }
         }
         Value::Array(a) => a.iter_mut().for_each(scrub_value),
-        Value::String(s) if looks_like_token(s) => *s = REDACTED.into(),
+        Value::String(s) if looks_like_token(s) || looks_like_email(s) => *s = REDACTED.into(),
         _ => {}
     }
 }
@@ -183,7 +217,7 @@ pub(crate) fn scrub_text(text: &str, max: usize) -> String {
     let words: alloc::vec::Vec<&str> = text
         .split_inclusive(char::is_whitespace)
         .map(|w| {
-            if looks_like_token(w.trim()) {
+            if looks_like_token(w.trim()) || looks_like_email(w) {
                 REDACTED
             } else {
                 w
@@ -203,6 +237,11 @@ fn looks_like_token(s: &str) -> bool {
             && s.chars().all(|c| {
                 c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '~' | '+' | '/' | '=')
             }))
+}
+
+/// Anything with an `@` in it: an email address, wherever it appears.
+fn looks_like_email(s: &str) -> bool {
+    s.contains('@')
 }
 
 fn truncate(s: &str, max: usize) -> String {
@@ -231,10 +270,25 @@ mod tests {
     }
 
     #[test]
+    fn snippet_redacts_personal_data() {
+        let body = br#"{"account":{"uuid":"u1","email_address":"ada@example.com","full_name":"Ada Example","display_name":"Ada","phone_number":"+1 555 0100"},"organization":{"name":"Example Org","billing_type":"stripe"},"email":"x@example.org","roles":{"organization_name":"Example Org"},"note":"mail ada@example.com"}"#;
+        let s = snippet(body);
+        for leak in ["ada@", "Ada", "Example", "555", "x@example"] {
+            assert!(!s.contains(leak), "{leak}: {s}");
+        }
+        assert!(s.contains(r#""billing_type":"stripe""#), "{s}");
+        assert!(s.contains(r#""uuid":"u1""#), "{s}");
+    }
+
+    #[test]
     fn snippet_of_text_is_cut_and_scrubbed() {
-        let body = alloc::format!("<html>sk-ant-oat01-fake {}</html>", "x".repeat(400));
+        let body = alloc::format!(
+            "<html>sk-ant-oat01-fake ada@example.com {}</html>",
+            "x".repeat(400)
+        );
         let s = snippet(body.as_bytes());
         assert!(!s.contains("sk-ant"), "{s}");
+        assert!(!s.contains("ada@"), "{s}");
         assert!(s.chars().count() <= SNIPPET_LEN + 1);
     }
 

@@ -8,7 +8,7 @@ use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
 
-use crate::Secret;
+use crate::{Secret, lenient};
 
 /// Claude Code's public OAuth client id, the one its logins are issued to.
 /// A refresh must name the client the token was issued to.
@@ -92,18 +92,26 @@ pub(crate) struct GrantBody<'a> {
     pub scope: String,
 }
 
-/// The token endpoint's success response, as sent.
+/// The token endpoint's success response, read leniently.
+///
+/// The server has spent the posted refresh token by the time this is
+/// decoded, so only the tokens themselves are required: every other field
+/// reads as `None` when it is missing, `null` or of an unexpected type, and
+/// unknown fields are ignored. A body without a string `access_token` (or
+/// with a `refresh_token` that isn't a string or `null`) is the only decode
+/// failure.
 #[derive(Deserialize)]
 pub(crate) struct GrantResponse {
     pub access_token: Secret,
     #[serde(default)]
     pub refresh_token: Option<Secret>,
-    pub expires_in: u64,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "lenient::seconds")]
+    pub expires_in: Option<u64>,
+    #[serde(default, deserialize_with = "lenient::seconds")]
     pub refresh_token_expires_in: Option<u64>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "lenient::opt")]
     pub scope: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "lenient::opt")]
     pub token_type: Option<String>,
 }
 
@@ -123,14 +131,17 @@ pub struct TokenSet {
     pub refresh_token: Secret,
     /// Whether the response carried a new refresh token.
     pub rotated: bool,
-    /// The access token's lifetime, as the response gave it.
-    pub expires_in: Duration,
+    /// The access token's lifetime, as the response gave it. `None` if the
+    /// response had no readable `expires_in`: treat the token's expiry as
+    /// unknown (use it until a call is refused, then refresh).
+    pub expires_in: Option<Duration>,
     /// When the access token expires: the response's time plus
-    /// [`TokenSet::expires_in`].
-    pub expires_at: SystemTime,
+    /// [`TokenSet::expires_in`]. `None` when that is unknown or too far out
+    /// to represent.
+    pub expires_at: Option<SystemTime>,
     /// When the new refresh token expires, if the response said.
     pub refresh_token_expires_at: Option<SystemTime>,
-    /// The granted scopes.
+    /// The granted scopes (empty if the response didn't say).
     pub scopes: Vec<String>,
     /// The token type (`Bearer`), if the response said.
     pub token_type: Option<String>,
@@ -138,7 +149,7 @@ pub struct TokenSet {
 
 impl TokenSet {
     pub(crate) fn from_response(r: GrantResponse, posted: &Secret, now: SystemTime) -> Self {
-        let expires_in = Duration::from_secs(r.expires_in);
+        let expires_in = r.expires_in.map(Duration::from_secs);
         let (refresh_token, rotated) = match r.refresh_token {
             Some(t) if !t.is_empty() => (t, true),
             _ => (posted.clone(), false),
@@ -148,10 +159,11 @@ impl TokenSet {
             refresh_token,
             rotated,
             expires_in,
-            expires_at: now + expires_in,
+            // Checked: a huge `expires_in` is `None`, never a panic.
+            expires_at: expires_in.and_then(|d| now.checked_add(d)),
             refresh_token_expires_at: r
                 .refresh_token_expires_in
-                .map(|s| now + Duration::from_secs(s)),
+                .and_then(|s| now.checked_add(Duration::from_secs(s))),
             scopes: r
                 .scope
                 .unwrap_or_default()
@@ -160,5 +172,51 @@ impl TokenSet {
                 .collect(),
             token_type: r.token_type,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn decode(body: &str) -> TokenSet {
+        let r: GrantResponse = serde_json::from_str(body).unwrap();
+        TokenSet::from_response(r, &Secret::new("posted"), SystemTime::UNIX_EPOCH)
+    }
+
+    #[test]
+    fn huge_expiry_does_not_panic() {
+        let t = decode(
+            r#"{"access_token":"a","refresh_token":"r","expires_in":18446744073709551615,"refresh_token_expires_in":18446744073709551615}"#,
+        );
+        assert_eq!(t.expires_in, Some(Duration::from_secs(u64::MAX)));
+        assert_eq!(t.expires_at, None);
+        assert_eq!(t.refresh_token_expires_at, None);
+        assert_eq!(t.refresh_token.expose(), "r");
+    }
+
+    #[test]
+    fn odd_fields_keep_the_tokens() {
+        for body in [
+            r#"{"access_token":"a","refresh_token":"r"}"#,
+            r#"{"access_token":"a","refresh_token":"r","expires_in":"3600"}"#,
+            r#"{"access_token":"a","refresh_token":"r","expires_in":3600.0}"#,
+            r#"{"access_token":"a","refresh_token":"r","expires_in":{"s":1},"scope":7,"token_type":[]}"#,
+            r#"{"access_token":"a","refresh_token":"r","expires_in":-5,"refresh_token_expires_in":"soon"}"#,
+            r#"{"access_token":"a","refresh_token":"r","expires_in":null,"new_field":{"x":[1,2]}}"#,
+        ] {
+            let t = decode(body);
+            assert_eq!(t.access_token.expose(), "a", "{body}");
+            assert_eq!(t.refresh_token.expose(), "r", "{body}");
+            assert!(t.rotated, "{body}");
+        }
+        let t = decode(r#"{"access_token":"a","refresh_token":"r","expires_in":"3600"}"#);
+        assert_eq!(t.expires_in, Some(Duration::from_secs(3600)));
+        assert_eq!(
+            t.expires_at,
+            Some(SystemTime::UNIX_EPOCH + Duration::from_secs(3600))
+        );
+        let t = decode(r#"{"access_token":"a","refresh_token":"r"}"#);
+        assert_eq!((t.expires_in, t.expires_at), (None, None));
     }
 }

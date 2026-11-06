@@ -203,13 +203,14 @@ async fn validate() {
     assert!(
         matches!(
             e,
-            Error::Unauthorized {
+            Error::Forbidden {
                 status: 403,
                 code: None
             }
         ),
         "{e:?}"
     );
+    assert!(e.is_forbidden() && !e.is_unauthorized());
 }
 
 fn token_mock() -> wiremock::MockBuilder {
@@ -242,8 +243,8 @@ async fn refresh_rotates() {
     assert_eq!(t.access_token.expose(), "fake-access-token-2");
     assert_eq!(t.refresh_token.expose(), "fake-refresh-token-2");
     assert!(t.rotated);
-    assert_eq!(t.expires_in, Duration::from_secs(28800));
-    assert!(t.expires_at >= before + Duration::from_secs(28800));
+    assert_eq!(t.expires_in, Some(Duration::from_secs(28800)));
+    assert!(t.expires_at.unwrap() >= before + Duration::from_secs(28800));
     assert!(t.refresh_token_expires_at.is_some());
     assert_eq!(t.scopes, ["user:inference", "user:profile"]);
     assert_eq!(t.token_type.as_deref(), Some("Bearer"));
@@ -305,7 +306,7 @@ async fn refresh_decode_error_hides_tokens() {
     let server = MockServer::start().await;
     token_mock()
         .respond_with(ResponseTemplate::new(200).set_body_raw(
-            r#"{"access_token":"fake-access-token-9","refresh_token":"fake-refresh-token-9","expires_in":"sk-ant-oat01-fake-access-token-9"}"#,
+            r#"{"access_token":["fake-access-token-9"],"refresh_token":"fake-refresh-token-9","expires_in":"sk-ant-oat01-fake-access-token-9"}"#,
             "application/json",
         ))
         .mount(&server)
@@ -484,6 +485,208 @@ async fn custom_user_agent() {
     let c = Client::builder()
         .base_url(server.uri())
         .user_agent("my-app/1.0")
+        .build()
+        .unwrap();
+    c.roles(&Secret::new(TOKEN)).await.unwrap();
+}
+
+/// A 200 from the token endpoint, with `body`.
+async fn refresh_with(body: &str) -> Result<ccwire_oauth::TokenSet, Error> {
+    let server = MockServer::start().await;
+    token_mock()
+        .respond_with(ResponseTemplate::new(200).set_body_raw(body.to_owned(), "application/json"))
+        .mount(&server)
+        .await;
+    client(&server).refresh(&refresh_request()).await
+}
+
+#[tokio::test]
+async fn refresh_keeps_the_tokens_when_other_fields_are_odd() {
+    // No expires_in.
+    let t = refresh_with(
+        r#"{"access_token":"fake-access-token-2","refresh_token":"fake-refresh-token-2"}"#,
+    )
+    .await
+    .unwrap();
+    assert_eq!(t.access_token.expose(), "fake-access-token-2");
+    assert_eq!(t.refresh_token.expose(), "fake-refresh-token-2");
+    assert!(t.rotated);
+    assert_eq!((t.expires_in, t.expires_at), (None, None));
+    // expires_in as a string.
+    let t = refresh_with(r#"{"access_token":"fake-access-token-2","refresh_token":"fake-refresh-token-2","expires_in":"3600"}"#)
+        .await
+        .unwrap();
+    assert_eq!(t.refresh_token.expose(), "fake-refresh-token-2");
+    assert_eq!(t.expires_in, Some(Duration::from_secs(3600)));
+    // An extra field, and wrong-typed optional ones.
+    let t = refresh_with(r#"{"access_token":"fake-access-token-2","refresh_token":"fake-refresh-token-2","expires_in":true,"scope":["user:profile"],"token_type":1,"id_token":{"x":1}}"#)
+        .await
+        .unwrap();
+    assert_eq!(t.refresh_token.expose(), "fake-refresh-token-2");
+    assert_eq!(t.expires_in, None);
+    assert_eq!(t.scopes, [] as [String; 0]);
+    // A huge expires_in neither panics nor fails.
+    let t = refresh_with(r#"{"access_token":"fake-access-token-2","refresh_token":"fake-refresh-token-2","expires_in":18446744073709551615}"#)
+        .await
+        .unwrap();
+    assert_eq!(t.expires_at, None);
+}
+
+#[tokio::test]
+async fn refresh_and_store_finishes_when_the_caller_drops_it() {
+    let server = MockServer::start().await;
+    token_mock()
+        .respond_with(json(200, "token").set_delay(Duration::from_millis(50)))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    let fut = client(&server).refresh_and_store(refresh_request(), move |t| async move {
+        let _ = tx.send(t.refresh_token.expose().to_owned());
+    });
+    drop(fut);
+    assert_eq!(rx.await.unwrap(), "fake-refresh-token-2");
+}
+
+#[tokio::test]
+async fn refresh_and_store_returns_the_store_output() {
+    let server = MockServer::start().await;
+    token_mock()
+        .respond_with(json(200, "token"))
+        .mount(&server)
+        .await;
+    let c = client(&server);
+    let rotated = c
+        .refresh_and_store(refresh_request(), |t| async move { t.rotated })
+        .await
+        .unwrap();
+    assert!(rotated);
+}
+
+#[tokio::test]
+async fn usage_tolerates_nulls_and_wrong_types() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/usage"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(
+            r#"{"five_hour":{"utilization":"35.5","resets_at":12},"seven_day":"oops","limits":null,"extra_usage":{"is_enabled":"yes","monthly_limit":"5000","used_credits":null,"utilization":[1]}}"#,
+            "application/json",
+        ))
+        .mount(&server)
+        .await;
+    let u = client(&server).usage(&Secret::new(TOKEN)).await.unwrap();
+    let five = u.five_hour.unwrap();
+    assert_eq!(five.utilization, Some(35.5));
+    assert_eq!(five.resets_at, None);
+    assert!(u.seven_day.is_none());
+    assert_eq!(u.limits, []);
+    let extra = u.extra_usage.unwrap();
+    assert_eq!(extra.is_enabled, None);
+    assert_eq!(extra.monthly_limit, Some(5000.0));
+    assert_eq!((extra.used_credits, extra.utilization), (None, None));
+}
+
+#[tokio::test]
+async fn prepaid_tolerates_wrong_types() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/organizations/org-1/prepaid/credits"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(
+            r#"{"amount":"12.50","currency":null,"expiry_policy_months":-1}"#,
+            "application/json",
+        ))
+        .mount(&server)
+        .await;
+    let p = client(&server)
+        .prepaid_credits(&Secret::new(TOKEN), "org-1")
+        .await
+        .unwrap();
+    assert_eq!(p.amount, Some(12.5));
+    assert_eq!((p.currency, p.expiry_policy_months), (None, None));
+}
+
+#[tokio::test]
+async fn org_dot_segments_are_refused() {
+    let c = Client::new().unwrap();
+    let e = c
+        .prepaid_credits(&Secret::new(TOKEN), "..")
+        .await
+        .unwrap_err();
+    assert!(matches!(e, Error::Config(_)), "{e:?}");
+}
+
+#[tokio::test]
+async fn malformed_json_on_a_get_is_decode() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/profile"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw(
+            r#"{"account":{"email_address":"ada@example.com","full_name":"Ada Example"}}"#,
+            "application/json",
+        ))
+        .mount(&server)
+        .await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/usage"))
+        .respond_with(ResponseTemplate::new(200).set_body_raw("{not json", "application/json"))
+        .mount(&server)
+        .await;
+    let c = client(&server);
+    // No account uuid: a hard requirement. The snippet keeps no personal data.
+    let e = c.profile(&Secret::new(TOKEN)).await.unwrap_err();
+    let Error::Decode { snippet, .. } = &e else {
+        panic!("{e:?}")
+    };
+    assert!(
+        !snippet.contains("ada@") && !snippet.contains("Ada"),
+        "{snippet}"
+    );
+    let e = c.usage(&Secret::new(TOKEN)).await.unwrap_err();
+    assert!(matches!(e, Error::Decode { status: 200, .. }), "{e:?}");
+}
+
+#[tokio::test]
+async fn non_json_401_is_unauthorized() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/usage"))
+        .respond_with(ResponseTemplate::new(401).set_body_raw("<html>nope</html>", "text/html"))
+        .mount(&server)
+        .await;
+    let e = client(&server)
+        .usage(&Secret::new(TOKEN))
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(
+            e,
+            Error::Unauthorized {
+                status: 401,
+                code: None
+            }
+        ),
+        "{e:?}"
+    );
+}
+
+#[tokio::test]
+async fn own_http_client() {
+    let server = MockServer::start().await;
+    Mock::given(method("GET"))
+        .and(path("/api/oauth/claude_cli/roles"))
+        .and(header("user-agent", "shared/2.0"))
+        .respond_with(json(200, "roles"))
+        .expect(1)
+        .mount(&server)
+        .await;
+    let http = reqwest::Client::builder()
+        .user_agent("shared/2.0")
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .unwrap();
+    let c = Client::builder()
+        .base_url(server.uri())
+        .http_client(http)
         .build()
         .unwrap();
     c.roles(&Secret::new(TOKEN)).await.unwrap();

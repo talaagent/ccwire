@@ -9,8 +9,19 @@ use zeroize::Zeroize;
 /// An access or refresh token.
 ///
 /// Its [`Debug`](fmt::Debug) and [`Display`](fmt::Display) print
-/// `<redacted>`, it has no `Serialize`, and its bytes are zeroed when it is
-/// dropped. [`Secret::expose`] is the only way to read it.
+/// `<redacted>`, it has no `Serialize`, and its own buffer is zeroed when it
+/// is dropped. [`Secret::expose`] is the only way to read it.
+///
+/// Zeroing is best effort, not a guarantee that no copy is left in memory.
+/// Each clone is a separate buffer, zeroed when that clone drops. The
+/// client zeroes the response bodies it reads, but not the copies made
+/// outside it: the request body handed to reqwest (and its TLS and HTTP/2
+/// buffers), reqwest's received chunks, the `String` a caller passes to
+/// [`Secret::new`], and whatever a caller does with [`Secret::expose`].
+///
+/// Equality (`==`) is a plain string comparison, not constant-time: fine
+/// for the compare-and-swap a refresh needs, not for checking a token an
+/// untrusted party sent.
 ///
 /// ```
 /// use ccwire_oauth::Secret;
