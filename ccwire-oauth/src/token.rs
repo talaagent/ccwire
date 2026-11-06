@@ -141,6 +141,9 @@ pub struct TokenSet {
     pub expires_at: Option<SystemTime>,
     /// When the new refresh token expires, if the response said.
     pub refresh_token_expires_at: Option<SystemTime>,
+    /// The new refresh token's lifetime, as the response gave it
+    /// (`refresh_token_expires_in`), if it did.
+    pub refresh_token_expires_in: Option<Duration>,
     /// The granted scopes (empty if the response didn't say).
     pub scopes: Vec<String>,
     /// The token type (`Bearer`), if the response said.
@@ -150,6 +153,7 @@ pub struct TokenSet {
 impl TokenSet {
     pub(crate) fn from_response(r: GrantResponse, posted: &Secret, now: SystemTime) -> Self {
         let expires_in = r.expires_in.map(Duration::from_secs);
+        let refresh_token_expires_in = r.refresh_token_expires_in.map(Duration::from_secs);
         let (refresh_token, rotated) = match r.refresh_token {
             Some(t) if !t.is_empty() => (t, true),
             _ => (posted.clone(), false),
@@ -161,9 +165,8 @@ impl TokenSet {
             expires_in,
             // Checked: a huge `expires_in` is `None`, never a panic.
             expires_at: expires_in.and_then(|d| now.checked_add(d)),
-            refresh_token_expires_at: r
-                .refresh_token_expires_in
-                .and_then(|s| now.checked_add(Duration::from_secs(s))),
+            refresh_token_expires_at: refresh_token_expires_in.and_then(|d| now.checked_add(d)),
+            refresh_token_expires_in,
             scopes: r
                 .scope
                 .unwrap_or_default()
@@ -192,6 +195,10 @@ mod tests {
         assert_eq!(t.expires_in, Some(Duration::from_secs(u64::MAX)));
         assert_eq!(t.expires_at, None);
         assert_eq!(t.refresh_token_expires_at, None);
+        assert_eq!(
+            t.refresh_token_expires_in,
+            Some(Duration::from_secs(u64::MAX))
+        );
         assert_eq!(t.refresh_token.expose(), "r");
     }
 
@@ -218,5 +225,9 @@ mod tests {
         );
         let t = decode(r#"{"access_token":"a","refresh_token":"r"}"#);
         assert_eq!((t.expires_in, t.expires_at), (None, None));
+        assert_eq!(
+            (t.refresh_token_expires_in, t.refresh_token_expires_at),
+            (None, None)
+        );
     }
 }
