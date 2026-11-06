@@ -172,7 +172,7 @@ fn known_type_of_a_new_shape_is_malformed() {
         panic!("not malformed")
     };
     assert_eq!(type_, "assistant");
-    assert!(!error.is_empty());
+    assert_ne!(error, "");
     assert_eq!(raw, v);
 
     let v = json!({"type": "system", "subtype": "init", "model": 5});
