@@ -16,6 +16,9 @@ import sys
 HIDDEN = {
     # Hidden in `claude --help` since at least 2.1.x; still honored in -p mode.
     "--max-turns",
+    # Hidden in `claude --help`; the official SDKs pass it for `stdio`
+    # permission prompts (see Options::permission_prompt_tool).
+    "--permission-prompt-tool",
 }
 
 

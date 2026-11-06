@@ -289,6 +289,9 @@ impl Options {
     /// `--permission-prompt-tool`: the MCP tool that answers permission
     /// prompts, or `stdio` for `can_use_tool` control requests on the
     /// stream-json channel.
+    ///
+    /// A hidden flag: the CLI accepts it, but `claude --help` doesn't list
+    /// it (the official SDKs pass it the same way).
     #[must_use]
     pub fn permission_prompt_tool(mut self, tool: impl Into<String>) -> Self {
         self.permission_prompt_tool = Some(tool.into());
