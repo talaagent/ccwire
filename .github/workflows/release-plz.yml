@@ -8,7 +8,7 @@
 #
 # Publishing also needs the CARGO_REGISTRY_TOKEN secret: without it the
 # release job is skipped. It isn't set, so nothing is published until someone
-# adds it (Ian's call).
+# adds it (the maintainer's call).
 
 name: release-plz
 

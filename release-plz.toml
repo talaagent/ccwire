@@ -4,7 +4,7 @@
 # the version and the changelog. Merging that PR publishes to crates.io and
 # tags a GitHub release. Publishing needs the CARGO_REGISTRY_TOKEN secret,
 # which isn't set: nothing is published until someone adds it, and nobody adds
-# it without Ian's call.
+# it without the maintainer's call.
 
 [workspace]
 # Publish only from a merged release PR, never from an ordinary push.
