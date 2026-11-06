@@ -246,6 +246,10 @@ async fn refresh_rotates() {
     assert_eq!(t.expires_in, Some(Duration::from_secs(28800)));
     assert!(t.expires_at.unwrap() >= before + Duration::from_secs(28800));
     assert!(t.refresh_token_expires_at.is_some());
+    assert_eq!(
+        t.refresh_token_expires_in,
+        Some(Duration::from_secs(2_592_000))
+    );
     assert_eq!(t.scopes, ["user:inference", "user:profile"]);
     assert_eq!(t.token_type.as_deref(), Some("Bearer"));
     let debug = format!("{t:?}");
