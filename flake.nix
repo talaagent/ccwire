@@ -32,6 +32,9 @@
             "--workspace"
             "--all-features"
           ];
+          # reqwest's rustls loads the platform roots when a client is built
+          # (ccwire-oauth's tests build some); the sandbox has none.
+          nativeCheckInputs = [ pkgs.cacert ];
           installPhase = ''
             runHook preInstall
             mkdir -p $out
