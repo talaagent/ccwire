@@ -63,9 +63,12 @@ impl LineTooLong {
     /// `result` still ends the turn ([`Inbound::ends_turn`]); `raw` is the
     /// head as a string.
     pub fn to_inbound(&self) -> Inbound {
+        let type_ = sniff_type(&self.head);
+        let error = self.to_string();
+        crate::protocol::stats::malformed(&type_, &error);
         Inbound::Malformed {
-            type_: sniff_type(&self.head),
-            error: self.to_string(),
+            type_,
+            error,
             raw: Value::String(String::from_utf8_lossy(&self.head).into_owned()),
         }
     }
@@ -95,8 +98,10 @@ pub fn parse_line(bytes: &[u8]) -> Option<Inbound> {
         Ok(_) => "not a JSON object".to_owned(),
         Err(e) => format!("invalid JSON: {e}"),
     };
+    let type_ = sniff_type(bytes);
+    crate::protocol::stats::malformed(&type_, &error);
     Some(Inbound::Malformed {
-        type_: sniff_type(bytes),
+        type_,
         error,
         raw: Value::String(String::from_utf8_lossy(bytes).into_owned()),
     })

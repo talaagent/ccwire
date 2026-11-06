@@ -47,14 +47,9 @@ const FILES: &[(&str, &str)] = &[
 ];
 
 /// Top-level types the corpus has that ccwire leaves as `Other` on purpose.
-const OTHER_TYPES: &[&str] = &["command_lifecycle"];
+const OTHER_TYPES: &[&str] = &[];
 /// `system` subtypes left as `System::Other` on purpose.
-const OTHER_SYSTEM: &[&str] = &[
-    "status",
-    "hook_response",
-    "background_tasks_changed",
-    "thinking_tokens",
-];
+const OTHER_SYSTEM: &[&str] = &["hook_response", "thinking_tokens"];
 /// Content block types left as `ContentBlock::Other` on purpose.
 const OTHER_BLOCKS: &[&str] = &["web_search_tool_result"];
 
@@ -116,6 +111,37 @@ fn check_message(at: &str, m: &Message, kinds: &mut BTreeMap<String, usize>) {
     }
 }
 
+/// The fields typed since they were extras, that the frame has, each with
+/// whether it parsed into its typed field (not `extra`).
+fn typed_fields(i: &Inbound) -> Vec<(&'static str, bool)> {
+    let mut out = Vec::new();
+    match i {
+        Inbound::StreamEvent(e) if !e.api_message_id.is_absent() => {
+            out.push(("api_message_id", !e.extra.contains_key("api_message_id")));
+        }
+        Inbound::System(System::Init(init)) if !init.terminal_slash_commands.is_absent() => {
+            out.push((
+                "terminal_slash_commands",
+                !init.extra.contains_key("terminal_slash_commands"),
+            ));
+        }
+        Inbound::System(System::TaskStarted(t)) if !t.owned_by_subagent.is_absent() => {
+            out.push((
+                "owned_by_subagent",
+                !t.extra.contains_key("owned_by_subagent"),
+            ));
+        }
+        Inbound::System(System::TaskNotification(t)) if !t.owned_by_subagent.is_absent() => {
+            out.push((
+                "owned_by_subagent",
+                !t.extra.contains_key("owned_by_subagent"),
+            ));
+        }
+        _ => {}
+    }
+    out
+}
+
 #[test]
 fn corpus_parses_typed_and_round_trips() {
     let mut kinds: BTreeMap<String, usize> = BTreeMap::new();
@@ -142,6 +168,11 @@ fn corpus_parses_typed_and_round_trips() {
             i => i.type_name().to_owned(),
         };
         *kinds.entry(kind).or_default() += 1;
+
+        for (field, typed) in typed_fields(&inbound) {
+            assert!(typed, "{at}: {field} isn't typed");
+            *kinds.entry(format!("field/{field}")).or_default() += 1;
+        }
 
         let back = serde_json::to_value(&inbound).expect("serializes");
         assert_eq!(back, raw, "{at}: round trip changed the frame");
@@ -172,6 +203,9 @@ fn corpus_parses_typed_and_round_trips() {
         "system/task_progress",
         "system/task_updated",
         "system/task_notification",
+        "system/status",
+        "system/background_tasks_changed",
+        "command_lifecycle",
         "result",
         "result/success",
         "result/error",
@@ -198,6 +232,9 @@ fn corpus_parses_typed_and_round_trips() {
         "block/tool_result",
         "block/server_tool_use",
         "block/image",
+        "field/api_message_id",
+        "field/owned_by_subagent",
+        "field/terminal_slash_commands",
     ] {
         assert!(kinds.contains_key(k), "corpus lacks {k}: {kinds:?}");
     }

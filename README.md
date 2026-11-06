@@ -22,12 +22,16 @@ no async runtime.
 - `UserInput`: a user message to write to the CLI's stdin.
 - `ControlRequest`, `ControlResponse`, `PermissionResult`: the control
   channel, both directions.
+- `Partial`, `PartialMessage`: `stream_event` deltas
+  (`--include-partial-messages`), read and assembled into a message's text.
 
 It is built to survive a CLI that ships weekly:
 
 - Parsing a JSON object never fails. An unknown `type` is `Other` with the raw
   JSON; a known `type` that no longer parses is `Malformed` with the error and
   the raw JSON, so a protocol change shows up instead of disappearing.
+  `protocol::stats::counts()` counts both (and, with the `tracing` feature,
+  each is logged with its type).
 - Every struct keeps the keys it doesn't model (`extra`), and optional keys
   tell absent from `null` (`Field`), so a frame serializes back to the same
   JSON value.
@@ -101,12 +105,14 @@ session.close().await?;
 
 - `runtime` (off by default): the async framing and the session core, on
   tokio (`io-util`, `sync`, `rt`).
+- `tracing` (off by default): log each `Other` (debug) and `Malformed` (warn)
+  frame with its type.
 
 ## Dependencies
 
-`serde`, `serde_json` and `thiserror`; `tokio` with `runtime`.
+`serde`, `serde_json` and `thiserror`; `tokio` with `runtime`; `tracing` with
+`tracing`.
 
 ## License
 
-Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
-[MIT license](LICENSE-MIT), at your option.
+Licensed under the [Apache License, Version 2.0](LICENSE).

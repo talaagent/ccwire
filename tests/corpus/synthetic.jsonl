@@ -19,3 +19,8 @@
 {"type":"result","subtype":"error_max_budget_usd","duration_ms":1,"duration_api_ms":0,"is_error":true,"num_turns":0,"session_id":"00000000-0000-4000-8000-000000000001","total_cost_usd":0,"errors":[]}
 {"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1791939600,"rateLimitType":"five_hour","utilization":1},"uuid":"00000000-0000-4000-8000-000000000008","session_id":"00000000-0000-4000-8000-000000000001"}
 {"type":"stream_event","uuid":"00000000-0000-4000-8000-000000000009","session_id":"00000000-0000-4000-8000-000000000001","parent_tool_use_id":"toolu_1","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}}}
+{"type":"command_lifecycle","command_uuid":"u9","state":"queued","session_id":"s1"}
+{"type":"system","subtype":"status","status":"compacting","session_id":"s1"}
+{"type":"system","subtype":"background_tasks_changed","session_id":"s1","tasks":[{"task_id":"a95","task_type":"local_agent","description":"render the v6 cut"}]}
+{"type":"system","subtype":"task_started","task_id":"bea","owned_by_subagent":true,"tool_use_id":"toolu_B","task_type":"local_bash","parent_task_id":"a87","description":"cargo test; nix build","is_backgrounded":true}
+{"type":"stream_event","parent_tool_use_id":null,"api_message_id":"msg_1","session_id":"s1","event":{"type":"message_stop"}}
