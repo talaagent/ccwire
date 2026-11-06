@@ -1,0 +1,58 @@
+[package]
+name = "ccwire-oauth"
+description = "A typed async client for the Claude account endpoints an OAuth login can call"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/talaagent/ccwire"
+authors = ["Ian Macalinao <github@igm.pub>"]
+rust-version = "1.85"
+publish = false
+keywords = ["claude", "oauth", "usage", "api-client"]
+categories = ["api-bindings"]
+# The recorded fixtures stay in the repo; the tests that include_str! them
+# go with them.
+exclude = ["tests"]
+
+[dependencies]
+httpdate = "1"
+# reqwest's default TLS is rustls (aws-lc-rs provider, the platform's
+# roots); http2 for the API, no system proxy lookup, no cookies.
+reqwest = { version = "0.13", default-features = false, features = [
+    "rustls",
+    "http2",
+    "charset",
+] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+url = "2"
+zeroize = "1"
+
+[dev-dependencies]
+tokio = { version = "1", default-features = false, features = [
+    "rt",
+    "macros",
+] }
+wiremock = "0.6"
+
+[lints.rust]
+missing_docs = "warn"
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+must_use_candidate = "allow"
+needless_pass_by_value = "allow"
+unnecessary_wraps = "allow"
+unwrap_used = "deny"
+std_instead_of_alloc = "deny"
+std_instead_of_core = "deny"
+cognitive_complexity = "deny"
+too_many_lines = "deny"
+clone_on_ref_ptr = "deny"
+await_holding_lock = "deny"
+disallowed_methods = "deny"
+disallowed_types = "deny"
+large_futures = "allow"
