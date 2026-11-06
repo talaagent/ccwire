@@ -65,9 +65,9 @@ use tokio::{
 use crate::{
     framing::{AsyncLineReader, DEFAULT_MAX_LINE, FrameReader, FrameWriter, encode_line},
     protocol::{
-        ControlCancelRequest, ControlRequest, ControlRequestBody, ControlResponse,
-        ControlResponseBody, Inbound, InterruptRequest, SetModelRequest, SetPermissionModeRequest,
-        StopTaskRequest, System, UserInput,
+        CommandLifecycle, ControlCancelRequest, ControlRequest, ControlRequestBody,
+        ControlResponse, ControlResponseBody, Inbound, InterruptRequest, SetModelRequest,
+        SetPermissionModeRequest, StopTaskRequest, System, UserInput,
     },
 };
 
@@ -212,6 +212,15 @@ impl SessionBuilder {
     /// Read from the start (`start_offset` 0, the default) so the turn a
     /// detached CLI is in is known: an EOF then still says
     /// [`Error::EndedMidTurn`].
+    ///
+    /// The caller's contract: `offset` must only cover what was fully
+    /// handled. A control request the earlier reader read but never
+    /// answered (it died in between) is replayed like any other, so
+    /// nobody answers it, and the CLI, which only sees answers on its
+    /// input, waits on it forever. A caller that answers control requests
+    /// must therefore advance the offset it persists past a request only
+    /// once its answer is written ([`SessionHandle::respond`] returned, or
+    /// the handler's answer went out), never when the request is read.
     #[must_use]
     pub fn replay_until(mut self, offset: u64) -> Self {
         self.replay_until = offset;
@@ -770,11 +779,8 @@ impl Inner {
     }
 
     /// A `command_lifecycle` event: `queued`, `started` or `completed`.
-    fn lifecycle(&mut self, raw: &Value) {
-        let (Some(uuid), Some(state)) = (
-            raw.get("command_uuid").and_then(Value::as_str),
-            raw.get("state").and_then(Value::as_str),
-        ) else {
+    fn lifecycle(&mut self, c: &CommandLifecycle) {
+        let (Some(uuid), Some(state)) = (c.command_uuid.as_deref(), c.state.as_deref()) else {
             return;
         };
         self.lifecycle = true;
@@ -1000,7 +1006,7 @@ fn track(shared: &Shared, frame: &Inbound) {
                 inner.session_id = Some(id.clone());
             }
         }
-        Inbound::Other { type_, raw } if type_ == "command_lifecycle" => inner.lifecycle(raw),
+        Inbound::CommandLifecycle(c) => inner.lifecycle(c),
         _ => return,
     }
     shared.settle(&mut inner);

@@ -23,7 +23,9 @@ mod field;
 mod inbound;
 mod input;
 mod message;
+mod partial;
 mod result;
+pub mod stats;
 mod system;
 
 pub use content::{
@@ -40,13 +42,14 @@ pub use field::Field;
 pub use inbound::{Control, Frame, Inbound, ParseError};
 pub use input::UserInput;
 pub use message::{
-    ApiMessage, ApiUserMessage, AssistantMessage, Message, RateLimitEvent, RateLimitInfo,
-    StreamEvent, UserMessage,
+    ApiMessage, ApiUserMessage, AssistantMessage, CommandLifecycle, Message, RateLimitEvent,
+    RateLimitInfo, StreamEvent, UserMessage,
 };
+pub use partial::{Partial, PartialMessage};
 pub use result::{ResultMessage, ResultSubtype, Usage};
 pub use system::{
-    CompactBoundary, CompactMetadata, McpServerStatus, System, SystemInit, TaskNotification,
-    TaskProgress, TaskStarted, TaskUpdated, TaskUsage,
+    BackgroundTasksChanged, CompactBoundary, CompactMetadata, McpServerStatus, System, SystemInit,
+    SystemStatus, TaskNotification, TaskProgress, TaskStarted, TaskUpdated, TaskUsage,
 };
 
 use serde::{Deserialize as _, de::DeserializeOwned};

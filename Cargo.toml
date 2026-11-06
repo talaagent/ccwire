@@ -1,14 +1,13 @@
 [package]
 name = "ccwire"
 description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
-version.workspace = true
-edition.workspace = true
-# Its own, not the workspace's: the crate is meant to move to its own repo.
-license = "MIT OR Apache-2.0"
-repository = "https://github.com/macalinao/ccwire"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+repository = "https://github.com/talaagent/ccwire"
 authors = ["Ian Macalinao <github@igm.pub>"]
-rust-version.workspace = true
-publish.workspace = true
+rust-version = "1.85"
+publish = false
 keywords = ["claude", "claude-code", "agent", "sdk"]
 categories = ["api-bindings"]
 # The golden corpus (and scrub.py, its tool) stays in the repo; its test
@@ -20,21 +19,25 @@ default = []
 # The async layers over tokio: the framing's async reader and writer, and
 # the session core. The `protocol` module and the sync framing never need it.
 runtime = ["dep:tokio"]
+# Logs every `Other` and `Malformed` frame (debug and warn, with its type),
+# besides counting them (`protocol::stats`, always on).
+tracing = ["dep:tracing"]
 
-# Declared here rather than inherited: the workspace's serde_json turns on
-# `preserve_order` and `float_roundtrip`, which ccwire doesn't need (frames
-# compare as `Value`s, so key order and the last float digit don't matter).
+# serde_json without `preserve_order` or `float_roundtrip`: frames compare
+# as `Value`s, so key order and the last float digit don't matter.
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 # Only what the session core uses: async I/O traits and buffering (io-util),
-# its channels (sync) and its reader/writer tasks (rt). Not the workspace's
-# tokio, which turns on most of tokio.
+# its channels (sync) and its reader/writer tasks (rt).
 tokio = { version = "1", default-features = false, features = [
     "io-util",
     "sync",
     "rt",
+], optional = true }
+tracing = { version = "0.1", default-features = false, features = [
+    "std",
 ], optional = true }
 
 [dev-dependencies]
@@ -49,5 +52,22 @@ tokio = { version = "1", default-features = false, features = [
     "time",
 ] }
 
-[lints]
-workspace = true
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+complexity = { level = "deny", priority = -1 }
+must_use_candidate = "allow"
+struct_excessive_bools = "allow"
+needless_pass_by_value = "allow"
+unnecessary_wraps = "allow"
+unwrap_used = "deny"
+std_instead_of_alloc = "deny"
+std_instead_of_core = "deny"
+cognitive_complexity = "deny"
+too_many_lines = "deny"
+clone_on_ref_ptr = "deny"
+# No lock guard across an await; the blocking calls clippy.toml lists are
+# off limits outside tests.
+await_holding_lock = "deny"
+disallowed_methods = "deny"
+disallowed_types = "deny"
+large_futures = "allow"

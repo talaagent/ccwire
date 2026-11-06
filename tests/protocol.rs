@@ -335,3 +335,80 @@ fn split_and_back() {
     let c = parse(&json!({"type": "control_cancel_request", "request_id": "r"}));
     assert!(Message::try_from(c).is_err());
 }
+
+#[test]
+fn other_and_malformed_frames_are_counted() {
+    use ccwire::protocol::stats;
+    let before = stats::counts();
+    let other = Inbound::from_line(r#"{"type":"brand_new","x":1}"#).unwrap();
+    assert!(matches!(other, Inbound::Other { .. }));
+    let bad = Inbound::from_line(r#"{"type":"assistant","message":7}"#).unwrap();
+    assert!(matches!(bad, Inbound::Malformed { .. }));
+    let after = stats::counts();
+    // Other tests parse in parallel: at least these.
+    assert!(after.other > before.other);
+    assert!(after.malformed > before.malformed);
+}
+
+#[test]
+fn the_new_types_parse_typed() {
+    use ccwire::protocol::{Message, System};
+    let lc = Inbound::from_line(
+        r#"{"type":"command_lifecycle","command_uuid":"u1","state":"queued","session_id":"s1"}"#,
+    )
+    .unwrap();
+    let Inbound::CommandLifecycle(c) = &lc else {
+        panic!("{lc:?}")
+    };
+    assert_eq!(
+        (c.command_uuid.as_deref(), c.state.as_deref()),
+        (Some("u1"), Some("queued"))
+    );
+    assert!(matches!(
+        Message::try_from(lc).unwrap(),
+        Message::CommandLifecycle(_)
+    ));
+
+    let st = Inbound::from_line(r#"{"type":"system","subtype":"status","status":"compacting"}"#)
+        .unwrap();
+    let Inbound::System(System::Status(st)) = st else {
+        panic!("{st:?}")
+    };
+    assert_eq!(st.status.as_deref(), Some("compacting"));
+
+    let bt = Inbound::from_line(
+        r#"{"type":"system","subtype":"background_tasks_changed","tasks":[{"task_id":"t1","task_type":"local_agent","description":"Find bugs"},"junk"]}"#,
+    )
+    .unwrap();
+    let Inbound::System(System::BackgroundTasksChanged(bt)) = bt else {
+        panic!("{bt:?}")
+    };
+    let ids: Vec<_> = bt.task_objects().map(|t| t["task_id"].clone()).collect();
+    assert_eq!(ids, ["t1"]);
+
+    let ts = Inbound::from_line(
+        r#"{"type":"system","subtype":"task_started","task_id":"bc","owned_by_subagent":true}"#,
+    )
+    .unwrap();
+    let Inbound::System(System::TaskStarted(ts)) = ts else {
+        panic!("{ts:?}")
+    };
+    assert!(ts.subagent_owned());
+
+    let se = Inbound::from_line(
+        r#"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Hi"}},"parent_tool_use_id":null,"api_message_id":"msg_5"}"#,
+    )
+    .unwrap();
+    let Inbound::StreamEvent(se) = se else {
+        panic!("{se:?}")
+    };
+    assert_eq!(se.api_message_id.as_deref(), Some("msg_5"));
+    assert!(!se.is_subagent());
+    assert_eq!(
+        se.partial(),
+        Some(ccwire::protocol::Partial::TextDelta {
+            index: 0,
+            text: "Hi".into()
+        })
+    );
+}
