@@ -1,13 +1,13 @@
 //! Line-delimited JSON framing: stream-json is one JSON object per line.
 //!
-//! - [`LineReader`] (sync, any [`std::io::Read`]) and [`AsyncLineReader`]
-//!   (feature `runtime`, any [`tokio::io::AsyncRead`]) split a byte stream
+//! - [`LineReader`] (sync, any [`std::io::Read`]) and [`AsyncLineReader`](https://docs.rs/ccwire/latest/ccwire/framing/struct.AsyncLineReader.html)
+//!   (feature `runtime`, any [`tokio::io::AsyncRead`](https://docs.rs/tokio/latest/tokio/io/trait.AsyncRead.html)) split a byte stream
 //!   into lines, bounded by a maximum length. A line over it is skipped and
 //!   reported as a [`LineTooLong`], and reading goes on after it.
-//! - [`FrameReader`] (feature `runtime`) turns the lines into [`Inbound`]
+//! - [`FrameReader`](https://docs.rs/ccwire/latest/ccwire/framing/struct.FrameReader.html) (feature `runtime`) turns the lines into [`Inbound`]
 //!   frames. It never fails on content: a line that isn't JSON, or is too
 //!   long, becomes [`Inbound::Malformed`]; only an I/O error ends it.
-//! - [`FrameWriter`] (feature `runtime`) writes one frame per line.
+//! - [`FrameWriter`](https://docs.rs/ccwire/latest/ccwire/framing/struct.FrameWriter.html) (feature `runtime`) writes one frame per line.
 //!
 //! Every line carries the byte offset just past it ([`Line::end`]), counted
 //! from the reader's start offset, so a caller can persist how far it got
@@ -74,7 +74,7 @@ impl LineTooLong {
     }
 }
 
-/// A [`LineReader`] or [`AsyncLineReader`] error.
+/// A [`LineReader`] or [`AsyncLineReader`](https://docs.rs/ccwire/latest/ccwire/framing/struct.AsyncLineReader.html) error.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum ReadError {
@@ -333,7 +333,7 @@ mod runtime {
     };
     use crate::protocol::Inbound;
 
-    /// Bounded lines from a [`tokio::io::AsyncRead`].
+    /// Bounded lines from a [`tokio::io::AsyncRead`](https://docs.rs/tokio/latest/tokio/io/trait.AsyncRead.html).
     ///
     /// [`Self::next_line`] is cancel safe: dropping it mid-read loses
     /// nothing, the next call carries on.
@@ -396,7 +396,7 @@ mod runtime {
         }
     }
 
-    /// [`Inbound`] frames from a [`tokio::io::AsyncRead`], one per line.
+    /// [`Inbound`] frames from a [`tokio::io::AsyncRead`](https://docs.rs/tokio/latest/tokio/io/trait.AsyncRead.html), one per line.
     ///
     /// Blank lines are skipped; a line that isn't a JSON object, or is too
     /// long, is an [`Inbound::Malformed`] ([`super::parse_line`],
@@ -413,7 +413,7 @@ mod runtime {
             Self::from_lines(AsyncLineReader::new(r))
         }
 
-        /// Frames of an [`AsyncLineReader`] (to set its limit and offset).
+        /// Frames of an [`AsyncLineReader`](https://docs.rs/ccwire/latest/ccwire/framing/struct.AsyncLineReader.html) (to set its limit and offset).
         pub fn from_lines(lines: AsyncLineReader<R>) -> Self {
             Self { lines }
         }

@@ -22,6 +22,26 @@
 //!   [`Error::RateLimited`] (with `Retry-After`), [`Error::Http`],
 //!   [`Error::Decode`] (with a scrubbed body snippet), and the rest.
 //!
+//! # Read usage
+//!
+//! Add `ccwire-oauth = "0.1"` and Tokio to your application. Obtain an
+//! access token through an existing Claude OAuth login; this crate does
+//! not perform browser login or persist credentials.
+//!
+//! ```no_run
+//! # async fn usage() -> Result<(), Box<dyn std::error::Error>> {
+//! use ccwire_oauth::{Client, Secret};
+//!
+//! let token = Secret::new(std::env::var("CLAUDE_ACCESS_TOKEN")?);
+//! let usage = Client::new()?.usage(&token).await?;
+//! if let Some(window) = usage.five_hour {
+//!     println!("utilization: {:?}%", window.utilization);
+//! }
+//! # Ok(()) }
+//! ```
+//!
+//! # Refresh and inspect a profile
+//!
 //! ```no_run
 //! # async fn run() -> Result<(), ccwire_oauth::Error> {
 //! use ccwire_oauth::{Client, RefreshRequest, Secret};
@@ -45,6 +65,7 @@
 //! Licensed under the Apache License, Version 2.0 (`LICENSE`).
 
 #![warn(missing_docs)]
+#![deny(rustdoc::broken_intra_doc_links)]
 
 extern crate alloc;
 

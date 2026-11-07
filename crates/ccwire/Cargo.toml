@@ -48,7 +48,16 @@ tokio = { workspace = true, features = [
     "rt-multi-thread",
     "macros",
     "time",
+    "process",
 ] }
 
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[[example]]
+name = "chat"
+required-features = ["runtime"]

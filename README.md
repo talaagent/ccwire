@@ -1,5 +1,11 @@
 # ccwire
 
+[![CI](https://github.com/talaagent/ccwire/actions/workflows/ci.yml/badge.svg)](https://github.com/talaagent/ccwire/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/ccwire.svg)](https://crates.io/crates/ccwire)
+[![docs.rs](https://docs.rs/ccwire/badge.svg)](https://docs.rs/ccwire)
+[![Rust 1.85+](https://img.shields.io/badge/rust-1.85%2B-orange.svg)](https://github.com/talaagent/ccwire/blob/main/Cargo.toml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/talaagent/ccwire/blob/main/LICENSE)
+
 A Rust SDK for [Claude Code](https://docs.claude.com/en/docs/claude-code): it
 drives the `claude` CLI over its stream-json protocol, the way the official
 TypeScript and Python Agent SDKs do.
@@ -9,6 +15,15 @@ line (`Options`), the line framing and the session core, checked against Claude 
 (`ccwire::TESTED_CLI_VERSION`). Spawning and reaping the `claude` process,
 `query()` and permission/hook/MCP helpers come next.
 
+| Crate | Purpose | Package | API docs |
+| --- | --- | --- | --- |
+| `ccwire` | Protocol types, CLI options, framing, and async sessions | [crates.io](https://crates.io/crates/ccwire) | [rustdoc](https://docs.rs/ccwire) |
+| `ccwire-oauth` | Claude account usage, profile, and OAuth token refresh | [crates.io](https://crates.io/crates/ccwire-oauth) | [rustdoc](https://docs.rs/ccwire-oauth) |
+
+Rust 1.85 or newer is required. This project is not affiliated with or
+endorsed by Anthropic. Running a live session requires an installed,
+authenticated `claude` CLI; parsing saved transcripts does not.
+
 ## Install
 
 ```sh
@@ -16,7 +31,7 @@ cargo add ccwire                     # the protocol types and sync framing
 cargo add ccwire --features runtime  # plus the async framing and the session core
 ```
 
-Until the first crates.io release, use the git repository:
+While the initial crates.io publication is pending, install from Git:
 
 ```toml
 [dependencies]
@@ -91,19 +106,52 @@ reader can resume a file where it stopped. `FrameWriter` writes frames.
 A session over any `AsyncRead` (the CLI's output) and `AsyncWrite` (its
 input), not tied to a child process:
 
-```rust,ignore
-use ccwire::{protocol::Inbound, session::Session};
+Enable `runtime` and use a Tokio runtime. The caller starts and reaps the
+child process; pass its stdout and stdin to `Session::new`:
 
-let mut session = Session::new(child_stdout, child_stdin);
-session.send("hi").await?;
-while let Some(frame) = session.next().await {
-    let frame = frame?;
-    if frame.ends_turn() {
-        break;
+```rust,no_run
+use ccwire::{protocol::{Frame, Message}, session::Session};
+use tokio::io::{AsyncRead, AsyncWrite};
+
+async fn read_turn<R, W>(child_stdout: R, child_stdin: W) -> Result<(), ccwire::session::Error>
+where
+    R: AsyncRead + Unpin + Send + 'static,
+    W: AsyncWrite + Unpin + Send + 'static,
+{
+    let mut session = Session::new(child_stdout, child_stdin);
+    session.send("hi").await?;
+    while let Some(frame) = session.next().await {
+        let frame = frame?;
+        let ends_turn = frame.ends_turn();
+        if let Frame::Message(Message::Assistant(message)) = frame.split() {
+            for block in message.content() {
+                if let Some(text) = block.as_text() {
+                    println!("{text}");
+                }
+            }
+        }
+        if ends_turn {
+            break;
+        }
     }
+    session.close().await?;
+    Ok(())
 }
-session.interrupt().await?; // a control round trip
-session.close().await?;
+```
+
+For a complete executable that starts the CLI, sends a prompt, reads the
+response, and waits for the child, see
+[`examples/chat.rs`](https://github.com/talaagent/ccwire/blob/main/crates/ccwire/examples/chat.rs):
+
+```sh
+cargo run -p ccwire --example chat --features runtime -- "Say hello in one sentence."
+```
+
+The example disables tools and limits the turn count. A live run uses your
+Claude account. For offline transcript parsing:
+
+```sh
+cargo run -p ccwire --example transcript -- path/to/transcript.jsonl
 ```
 
 - Control round trips: `request` (with `interrupt`, `set_model`,
@@ -130,6 +178,15 @@ session.close().await?;
 `serde`, `serde_json` and `thiserror`; `tokio` with `runtime`; `tracing` with
 `tracing`.
 
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/talaagent/ccwire/blob/main/CONTRIBUTING.md)
+for local checks, the workspace layout, protocol fixtures, and the release
+process. Report bugs and request features in
+[GitHub Issues](https://github.com/talaagent/ccwire/issues).
+For vulnerabilities, use the private reporting instructions in
+[SECURITY.md](https://github.com/talaagent/ccwire/blob/main/SECURITY.md).
+
 ## License
 
-Licensed under the [Apache License, Version 2.0](LICENSE).
+Licensed under the [Apache License, Version 2.0](https://github.com/talaagent/ccwire/blob/main/LICENSE).

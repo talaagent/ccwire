@@ -1,5 +1,14 @@
 # ccwire-oauth
 
+[![crates.io](https://img.shields.io/crates/v/ccwire-oauth.svg)](https://crates.io/crates/ccwire-oauth)
+[![docs.rs](https://docs.rs/ccwire-oauth/badge.svg)](https://docs.rs/ccwire-oauth)
+[![CI](https://github.com/talaagent/ccwire/actions/workflows/ci.yml/badge.svg)](https://github.com/talaagent/ccwire/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/talaagent/ccwire/blob/main/LICENSE)
+
+[API reference](https://docs.rs/ccwire-oauth) ·
+[Repository](https://github.com/talaagent/ccwire) ·
+[Issues](https://github.com/talaagent/ccwire/issues)
+
 A typed async client for the read-only Claude account endpoints an OAuth
 login (a Claude Code subscription login) can call:
 
@@ -30,14 +39,37 @@ unexpected type reads as `None` instead of failing the call.
 cargo add ccwire-oauth
 ```
 
-Until the first crates.io release, use the git repository:
+While the initial crates.io publication is pending, install from Git:
 
 ```toml
 [dependencies]
 ccwire-oauth = { git = "https://github.com/talaagent/ccwire" }
 ```
 
-## Example
+Rust 1.85 or newer and a Tokio runtime are required. Supply an existing
+Claude OAuth access token; this crate does not implement browser login or
+load credentials from disk.
+
+## Read usage
+
+```rust,no_run
+async fn usage() -> Result<(), Box<dyn std::error::Error>> {
+    use ccwire_oauth::{Client, Secret};
+
+    let token = Secret::new(std::env::var("CLAUDE_ACCESS_TOKEN")?);
+    let usage = Client::new()?.usage(&token).await?;
+    if let Some(window) = usage.five_hour {
+        println!("five-hour utilization: {:?}%", window.utilization);
+    }
+    Ok(())
+}
+```
+
+Run the [complete example](https://github.com/talaagent/ccwire/blob/main/crates/ccwire-oauth/examples/usage.rs)
+with `cargo run -p ccwire-oauth --example usage` after setting
+`CLAUDE_ACCESS_TOKEN` in your environment.
+
+## Refresh an expired token
 
 ```rust,no_run
 use ccwire_oauth::{Client, Error, RefreshRequest, Secret};
@@ -73,4 +105,7 @@ async fn run() -> Result<(), Error> {
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](https://github.com/talaagent/ccwire/blob/main/LICENSE).
+
+For development and release instructions, see
+[CONTRIBUTING.md](https://github.com/talaagent/ccwire/blob/main/CONTRIBUTING.md).

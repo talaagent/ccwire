@@ -61,6 +61,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
+      pull-requests: read
     # One publish at a time; never cancel one halfway through.
     concurrency:
       group: release-plz-release-${{ github.ref }}
@@ -75,28 +76,41 @@ jobs:
         with:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
       # Which publishable crates have a version crates.io doesn't have yet?
-      # Only then ask for a token, so an ordinary push stays green. A crate
-      # not on crates.io at all is skipped with a warning: trusted
-      # publishing can't create a crate, its first publish is manual.
+      # Only then ask for a token. Missing crates fail visibly: trusted
+      # publishing cannot create a crate, so its first publish is manual.
+      # Registry/network errors must never look like "nothing to publish".
       - name: Versions not on crates.io yet
         id: pending
         run: |
           ua="User-Agent: ${GITHUB_REPOSITORY} release workflow"
           api=https://crates.io/api/v1/crates
           pending=""
+          missing=false
+          metadata=$(cargo metadata --no-deps --format-version 1)
           while read -r name version; do
-            if [ "$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")" = 404 ]; then
-              echo "::warning::$name is not on crates.io yet: publish it once by hand (cargo publish -p $name), then add its trusted publisher"
-              continue
-            fi
-            code=$(curl -s -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
+            crate_code=$(curl --silent --show-error --retry 3 -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name")
+            case "$crate_code" in
+              200) ;;
+              404)
+                echo "::error::$name has never been published. Run cargo publish -p $name with registry credentials, then configure its crates.io trusted publisher. See CONTRIBUTING.md."
+                echo "- $name: initial publication required; see CONTRIBUTING.md." >> "$GITHUB_STEP_SUMMARY"
+                missing=true
+                continue
+                ;;
+              *) echo "::error::crates.io lookup for $name returned HTTP $crate_code"; exit 1 ;;
+            esac
+            code=$(curl --silent --show-error --retry 3 -o /dev/null -w '%{http_code}' -H "$ua" "$api/$name/$version")
             echo "$name $version: crates.io $code"
-            if [ "$code" = 404 ]; then pending="$pending $name@$version"; fi
-          done < <(cargo metadata --no-deps --format-version 1 \
-            | jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"')
+            case "$code" in
+              200) echo "- $name@$version is already published." >> "$GITHUB_STEP_SUMMARY" ;;
+              404) pending="$pending $name@$version" ;;
+              *) echo "::error::crates.io lookup for $name@$version returned HTTP $code"; exit 1 ;;
+            esac
+          done < <(jq -r '.packages[] | select(.publish != []) | "\(.name) \(.version)"' <<< "$metadata")
+          if [ "$missing" = true ]; then exit 1; fi
           echo "pending=${pending# }" >> "$GITHUB_OUTPUT"
           if [ -z "$pending" ]; then
-            echo "::notice::Nothing to publish."
+            echo "::notice::All workspace versions are already on crates.io."
           fi
       - name: crates.io token (trusted publishing)
         if: ${{ steps.pending.outputs.pending != '' }}

@@ -33,3 +33,7 @@ wiremock.workspace = true
 # missing_docs is warned in src/lib.rs (#![warn(missing_docs)]).
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
