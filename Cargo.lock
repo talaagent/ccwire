@@ -94,7 +94,7 @@ dependencies = [
 
 [[package]]
 name = "ccwire"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",
@@ -105,7 +105,7 @@ dependencies = [
 
 [[package]]
 name = "ccwire-oauth"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "httpdate",
  "reqwest",
