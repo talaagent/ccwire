@@ -89,7 +89,8 @@ jobs:
         with:
           key: ${{ matrix.features.name }}
       # Includes crates/ccwire/tests/corpus.rs, the golden corpus test.
-      - run: cargo test --workspace --all-targets --locked ${{ matrix.features.flags }}
+      - uses: taiki-e/install-action@nextest
+      - run: cargo nextest run --profile ci --workspace --all-targets --locked ${{ matrix.features.flags }}
       - run: cargo test --workspace --doc --locked ${{ matrix.features.flags }}
 
   msrv:

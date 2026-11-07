@@ -22,12 +22,14 @@ Run from the repository root:
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-cargo test --workspace --locked
-cargo test --workspace --all-features --locked
+cargo nextest run --workspace --locked
+cargo test --workspace --doc --locked
+cargo nextest run --workspace --all-features --locked
+cargo test --workspace --all-features --doc --locked
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --all-features --locked
 ```
 
-`cargo test` includes doctests. Keep public API examples compilable, and use
+Nextest runs unit and integration tests; `cargo test --doc` checks doctests. Keep public API examples compilable, and use
 `no_run` for examples that need credentials, a process, or network access.
 The README examples are compiled as doctests too. Check both default and all
 features: the protocol layer must remain usable without Tokio.
@@ -86,3 +88,9 @@ Check the package and docs.rs pages after releasing:
 
 
 Contributions are licensed under the repository's Apache-2.0 license.
+
+Use `jiff` for date/time handling; do not add a direct `chrono` dependency.
+The Nix dev shell supplies Rust, Cargo, Clippy, rustfmt, and cargo-nextest.
+
+Run `nix develop` for the pinned toolchain or `nix flake check -L` to run
+the workspace through nextest and doctests in the Nix sandbox.
