@@ -52,35 +52,31 @@ network credentials. Run live examples explicitly, using your own account.
 Each crate has its own version and changelog. Release automation is configured
 in `release-plz.toml` and `.github/workflows/release.yml`.
 
-First-time setup:
+Release automation uses **release-plz** for both release PRs and publishing.
+Configure these repository Actions secrets:
 
-1. Publish each crate once using an authorized crates.io account. Run
-   `cargo publish -p ccwire --dry-run` and
-   `cargo publish -p ccwire-oauth --dry-run`, then repeat without `--dry-run`.
-   Configure credentials with `cargo login`; never commit a registry token.
-2. For **each** crate, configure a crates.io trusted publisher with GitHub owner
-   `talaagent`, repository `ccwire`, workflow `release.yml`, and environment
-   `release`. The first publication requires a token because trusted publishing
-   cannot create a new crate.
-3. Allow GitHub Actions to create pull requests in the repository's Actions
-   settings (organization policy must also permit this). Set repository variable
-   `RELEASE_PR=true`. Keep a GitHub label named `release`.
+- `RELEASE_PLZ_TOKEN`: a GitHub App token or PAT with repository contents,
+  pull-request, and workflow write permissions. This lets release PRs update
+  workflow files and trigger CI without relying on organization permissions
+  for the built-in `GITHUB_TOKEN`.
+- `CARGO_REGISTRY_TOKEN`: a crates.io publishing token. This is required for
+  first-time publication and is configured for this repository.
 
-After setup, pushes to `main` update a release PR. Review its version bumps and
-changelogs, wait for CI, then merge it. The publish job exchanges GitHub OIDC
-credentials for a short-lived crates.io token, publishes pending versions, and
-creates tags and GitHub releases. Ordinary pushes do not publish with
-`release_always = false`. Tags are `v<version>` for `ccwire` and
+Pushes to `main` update a release PR with version bumps and changelogs. Review
+and merge it after CI passes. `release_always = false` publishes only merged
+release PRs; release-plz publishes crates in dependency order, creates tags,
+and creates GitHub releases. Tags are `v<version>` for `ccwire` and
 `ccwire-oauth-v<version>` for `ccwire-oauth`.
 
-A missing crate or registry API failure fails the publish job; a green workflow
-must not hide a missing initial publication. Check both package pages and docs.rs
-builds after release:
+For tokenless registry publication, configure each crate's trusted publisher
+with owner `talaagent`, repository `ccwire`, workflow `release.yml`, environment
+`release`, then remove the registry secret. Release-plz obtains OIDC credentials
+itself. A new crate still needs a publishing token for its first upload.
+
+Check the package and docs.rs pages after releasing:
 
 - [ccwire](https://crates.io/crates/ccwire) · [API docs](https://docs.rs/ccwire)
 - [ccwire-oauth](https://crates.io/crates/ccwire-oauth) · [API docs](https://docs.rs/ccwire-oauth)
 
-Once initial publication is confirmed, remove the temporary Git-install fallback
-from both READMEs. docs.rs builds all features, including the session API.
 
 Contributions are licensed under the repository's Apache-2.0 license.

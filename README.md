@@ -31,13 +31,6 @@ cargo add ccwire                     # the protocol types and sync framing
 cargo add ccwire --features runtime  # plus the async framing and the session core
 ```
 
-While the initial crates.io publication is pending, install from Git:
-
-```toml
-[dependencies]
-ccwire = { git = "https://github.com/talaagent/ccwire", features = ["runtime"] }
-```
-
 The workspace also has [`ccwire-oauth`](https://github.com/talaagent/ccwire/tree/main/crates/ccwire-oauth), a typed client for
 the Claude account endpoints an OAuth login can call.
 

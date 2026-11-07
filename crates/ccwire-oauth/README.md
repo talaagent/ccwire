@@ -39,13 +39,6 @@ unexpected type reads as `None` instead of failing the call.
 cargo add ccwire-oauth
 ```
 
-While the initial crates.io publication is pending, install from Git:
-
-```toml
-[dependencies]
-ccwire-oauth = { git = "https://github.com/talaagent/ccwire" }
-```
-
 Rust 1.85 or newer and a Tokio runtime are required. Supply an existing
 Claude OAuth access token; this crate does not implement browser login or
 load credentials from disk.
