@@ -53,14 +53,20 @@ Each crate has its own version and changelog. Release automation is configured
 in `release-plz.toml` and `.github/workflows/release.yml`.
 
 Release automation uses **release-plz** for both release PRs and publishing.
-Configure these repository Actions secrets:
+Release PRs use the built-in `GITHUB_TOKEN` by default, with job-level
+`contents: write` and `pull-requests: write` permissions. Enable **Allow GitHub
+Actions to create and approve pull requests** in the organization and repository
+Actions settings, then set repository variable `RELEASE_PR=true`. The setup
+check prevents a failing updater from disturbing an existing release PR.
 
-- `RELEASE_PLZ_TOKEN`: a GitHub App token or PAT with repository contents,
-  pull-request, and workflow write permissions. This lets release PRs update
-  workflow files and trigger CI without relying on organization permissions
-  for the built-in `GITHUB_TOKEN`.
-- `CARGO_REGISTRY_TOKEN`: a crates.io publishing token. This is required for
-  first-time publication and is configured for this repository.
+GitHub requires a maintainer to approve CI runs on PRs created or updated with
+`GITHUB_TOKEN`; token-generated pushes do not start ordinary push workflows.
+An optional `RELEASE_PLZ_TOKEN` (GitHub App token or PAT) can override the built-in
+token to run PR CI without that approval and support workflow-file updates.
+No personal GitHub token is required for the default setup.
+
+The `CARGO_REGISTRY_TOKEN` Actions secret supplies registry publishing credentials
+and is already configured. A new crate needs it for first publication.
 
 Pushes to `main` update a release PR with version bumps and changelogs. Review
 and merge it after CI passes. `release_always = false` publishes only merged
