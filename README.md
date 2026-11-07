@@ -178,6 +178,12 @@ cargo run -p ccwire --example transcript -- path/to/transcript.jsonl
 `serde`, `serde_json` and `thiserror`; `tokio` with `runtime`; `tracing` with
 `tracing`.
 
+## Changelogs
+
+See [ccwire changes](https://github.com/talaagent/ccwire/blob/main/crates/ccwire/CHANGELOG.md)
+and [ccwire-oauth changes](https://github.com/talaagent/ccwire/blob/main/crates/ccwire-oauth/CHANGELOG.md).
+Each crate is versioned separately.
+
 ## Contributing
 
 See [CONTRIBUTING.md](https://github.com/talaagent/ccwire/blob/main/CONTRIBUTING.md)
