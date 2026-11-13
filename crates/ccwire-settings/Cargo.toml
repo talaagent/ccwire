@@ -1,0 +1,28 @@
+[package]
+name = "ccwire-settings"
+description = "Claude Code's settings.json as Rust types, with its layer merge"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+readme = "README.md"
+repository.workspace = true
+documentation = "https://docs.rs/ccwire-settings"
+authors.workspace = true
+rust-version.workspace = true
+keywords = ["claude", "claude-code", "settings", "serde"]
+categories = ["config", "api-bindings"]
+# The schema copy, its refresh script's output and the fixtures stay in the
+# repo; the tests that read them go with them.
+exclude = ["schema", "tests"]
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+# missing_docs is warned in src/lib.rs (#![warn(missing_docs)]).
+[lints]
+workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
