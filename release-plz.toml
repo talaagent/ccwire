@@ -31,7 +31,7 @@ git_release_name = "ccwire-oauth-v{{ version }}"
 changelog_path = "crates/ccwire-oauth/CHANGELOG.md"
 
 [[package]]
-name = "ccwire-settings"
-git_tag_name = "ccwire-settings-v{{ version }}"
-git_release_name = "ccwire-settings-v{{ version }}"
-changelog_path = "crates/ccwire-settings/CHANGELOG.md"
+name = "claude-code-settings"
+git_tag_name = "claude-code-settings-v{{ version }}"
+git_release_name = "claude-code-settings-v{{ version }}"
+changelog_path = "crates/claude-code-settings/CHANGELOG.md"

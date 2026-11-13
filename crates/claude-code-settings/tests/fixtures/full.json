@@ -40,7 +40,10 @@
     "disableAutoMode": "disable",
     "additionalDirectories": [
       "/tmp"
-    ]
+    ],
+    "blockReadsOutsideWorkingDirectories": false,
+    "blockWritesOutsideWorkingDirectories": false,
+    "denyInsteadOfPrompting": true
   },
   "language": "english",
   "model": "sonnet",
@@ -728,9 +731,17 @@
           "mode": "deny"
         }
       ],
-      "allowPlaintextInject": false
+      "allowPlaintextInject": false,
+      "awsPairs": [
+        {
+          "accessKeyIdVar": "MY_AWS_KEY_ID",
+          "secretAccessKeyVar": "MY_AWS_SECRET",
+          "sessionTokenVar": "MY_AWS_TOKEN"
+        }
+      ]
     },
-    "allowAppleEvents": false
+    "allowAppleEvents": false,
+    "allowNestedUserNamespaces": false
   },
   "spinnerVerbs": {
     "mode": "append",
@@ -768,7 +779,8 @@
     "bgIsolation": "worktree",
     "symlinkDirectories": [
       "node_modules"
-    ]
+    ],
+    "location": "~/worktrees"
   },
   "parentSettingsBehavior": "first-wins",
   "pluginTrustMessage": "Trusted",

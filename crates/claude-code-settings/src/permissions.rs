@@ -16,6 +16,7 @@ use crate::walk::walk;
 /// Across layers the lists merge, and a `deny` beats an `allow`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Permissions {
     /// Rules for tool uses to allow without asking.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,6 +39,15 @@ pub struct Permissions {
     /// More directories the session may work in.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_directories: Option<Vec<String>>,
+    /// Refuse file reads outside the working directories.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_reads_outside_working_directories: Option<bool>,
+    /// Refuse file writes outside the working directories.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block_writes_outside_working_directories: Option<bool>,
+    /// Deny a call that would prompt instead of waiting.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub deny_instead_of_prompting: Option<bool>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -47,6 +57,7 @@ pub struct Permissions {
 /// the built-in one unless it holds the literal `$defaults`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct AutoMode {
     /// Rules for the allow section.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -72,6 +83,7 @@ pub struct AutoMode {
 /// three fields.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct McpServerRule {
     /// A server by name.
     #[serde(skip_serializing_if = "Option::is_none")]

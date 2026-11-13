@@ -19,7 +19,7 @@ line (`Options`), the line framing and the session core, checked against Claude 
 | --- | --- | --- | --- |
 | `ccwire` | Protocol types, CLI options, framing, and async sessions | [crates.io](https://crates.io/crates/ccwire) | [rustdoc](https://docs.rs/ccwire) |
 | `ccwire-oauth` | Claude account usage, profile, and OAuth token refresh | [crates.io](https://crates.io/crates/ccwire-oauth) | [rustdoc](https://docs.rs/ccwire-oauth) |
-| `ccwire-settings` | Claude Code's settings.json as types, with its layer merge | [crates.io](https://crates.io/crates/ccwire-settings) | [rustdoc](https://docs.rs/ccwire-settings) |
+| `claude-code-settings` | Claude Code's settings.json as types, with its layer merge | [crates.io](https://crates.io/crates/claude-code-settings) | [rustdoc](https://docs.rs/claude-code-settings) |
 
 Rust 1.85 or newer is required. This project is not affiliated with or
 endorsed by Anthropic. Running a live session requires an installed,
@@ -34,7 +34,7 @@ cargo add ccwire --features runtime  # plus the async framing and the session co
 
 The workspace also has [`ccwire-oauth`](https://github.com/talaagent/ccwire/tree/main/crates/ccwire-oauth), a typed client for
 the Claude account endpoints an OAuth login can call, and
-[`ccwire-settings`](https://github.com/talaagent/ccwire/tree/main/crates/ccwire-settings),
+[`claude-code-settings`](https://github.com/talaagent/ccwire/tree/main/crates/claude-code-settings),
 Claude Code's settings.json as types (for `--settings` and settings files).
 
 ## `ccwire::protocol`
@@ -178,7 +178,7 @@ cargo run -p ccwire --example transcript -- path/to/transcript.jsonl
 
 See [ccwire changes](https://github.com/talaagent/ccwire/blob/main/crates/ccwire/CHANGELOG.md)
 [ccwire-oauth changes](https://github.com/talaagent/ccwire/blob/main/crates/ccwire-oauth/CHANGELOG.md)
-and [ccwire-settings changes](https://github.com/talaagent/ccwire/blob/main/crates/ccwire-settings/CHANGELOG.md).
+and [claude-code-settings changes](https://github.com/talaagent/ccwire/blob/main/crates/claude-code-settings/CHANGELOG.md).
 Each crate is versioned separately.
 
 ## Contributing

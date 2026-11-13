@@ -17,7 +17,7 @@
 //!   settings.
 //!
 //! ```
-//! use ccwire_settings::{Hook, HookEvent, HookMatcher, Permissions, PermissionMode, Settings};
+//! use claude_code_settings::{Hook, HookEvent, HookMatcher, Permissions, PermissionMode, Settings};
 //!
 //! let mut settings = Settings {
 //!     model: Some("sonnet".into()),
@@ -87,8 +87,8 @@ pub use plugins::{
     StrictCustomization,
 };
 pub use sandbox::{
-    CredentialEnvVar, CredentialFile, Ripgrep, Sandbox, SandboxCredentials, SandboxFilesystem,
-    SandboxNetwork, TlsTerminate,
+    AwsPair, CredentialEnvVar, CredentialFile, Ripgrep, Sandbox, SandboxCredentials,
+    SandboxFilesystem, SandboxNetwork, TlsTerminate,
 };
 pub use settings::Settings;
 pub use types::{

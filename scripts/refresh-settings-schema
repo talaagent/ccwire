@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Re-fetches Claude Code's settings JSON schema into ccwire-settings and
+# Re-fetches Claude Code's settings JSON schema into claude-code-settings and
 # records the date. Then run the crate's tests: `schema` lists every key
 # the schema has that tests/fixtures/full.json (and so `Settings`) lacks.
 set -euo pipefail
 
 url=https://json.schemastore.org/claude-code-settings.json
-dir=$(dirname "$0")/../crates/ccwire-settings/schema
+dir=$(dirname "$0")/../crates/claude-code-settings/schema
 tmp=$(mktemp)
 trap 'rm -f "$tmp"' EXIT
 curl -sSfL "$url" -o "$tmp"

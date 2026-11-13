@@ -9,8 +9,8 @@
 # - `claude --version` matches ccwire::TESTED_CLI_VERSION (a warning only:
 #   the CLI ships weekly, so this is expected to drift between corpus updates);
 # - every flag Options::to_argv can emit still appears in `claude --help`;
-# - the CLI loads ccwire-settings' fully populated settings document
-#   (crates/ccwire-settings/tests/cli.rs) with no key rejected.
+# - the CLI loads claude-code-settings' fully populated settings document
+#   (crates/claude-code-settings/tests/cli.rs) with no key rejected.
 # With an ANTHROPIC_API_KEY secret it also runs one short live turn. It never
 # prints the key. A failed scheduled run opens (or comments on) one issue.
 
@@ -69,8 +69,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: stable
-      - name: Check that claude loads every ccwire-settings key
-        run: CLAUDE_BIN=$(command -v claude) cargo test -p ccwire-settings --locked --test cli -- --ignored
+      - name: Check that claude loads every claude-code-settings key
+        run: CLAUDE_BIN=$(command -v claude) cargo test -p claude-code-settings --locked --test cli -- --ignored
 
       # Only with the secret: a skipped step costs nothing and needs no key.
       - name: Live turn (needs ANTHROPIC_API_KEY)

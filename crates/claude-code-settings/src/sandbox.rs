@@ -13,6 +13,7 @@ use crate::walk::walk;
 /// `sandbox`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Sandbox {
     /// Run Bash in the sandbox.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,6 +65,9 @@ pub struct Sandbox {
     /// macOS: allow Apple Events.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_apple_events: Option<bool>,
+    /// Linux and WSL2: let sandboxed commands create user namespaces.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_nested_user_namespaces: Option<bool>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -72,6 +76,7 @@ pub struct Sandbox {
 /// `sandbox.network`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SandboxNetwork {
     /// Domains sandboxed commands may reach (`*.example.com`).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -114,6 +119,7 @@ pub struct SandboxNetwork {
 /// `sandbox.network.tlsTerminate`; empty for a generated CA.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct TlsTerminate {
     /// Your CA certificate.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,6 +135,7 @@ pub struct TlsTerminate {
 /// `sandbox.filesystem`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SandboxFilesystem {
     /// Paths sandboxed commands may write.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -156,6 +163,7 @@ pub struct SandboxFilesystem {
 /// `sandbox.credentials`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SandboxCredentials {
     /// Credential files to hide.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -166,6 +174,9 @@ pub struct SandboxCredentials {
     /// Substitute masks on plain HTTP too.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allow_plaintext_inject: Option<bool>,
+    /// Masked variables that form one AWS credential.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub aws_pairs: Option<Vec<AwsPair>>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -174,6 +185,7 @@ pub struct SandboxCredentials {
 /// An entry of `sandbox.credentials.files`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CredentialFile {
     /// The file.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -189,6 +201,7 @@ pub struct CredentialFile {
 /// An entry of `sandbox.credentials.envVars`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CredentialEnvVar {
     /// The variable.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -201,9 +214,29 @@ pub struct CredentialEnvVar {
     pub extra: Extra,
 }
 
+/// An entry of `sandbox.credentials.awsPairs`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct AwsPair {
+    /// The access key ID variable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub access_key_id_var: Option<String>,
+    /// The secret access key variable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub secret_access_key_var: Option<String>,
+    /// The session token variable.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_token_var: Option<String>,
+    /// Keys this crate doesn't model.
+    #[serde(flatten)]
+    pub extra: Extra,
+}
+
 /// `sandbox.ripgrep`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Ripgrep {
     /// The ripgrep binary.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -229,8 +262,10 @@ walk!(TlsTerminate {});
 walk!(SandboxFilesystem {});
 walk!(SandboxCredentials {
     files: "files",
-    env_vars: "envVars"
+    env_vars: "envVars",
+    aws_pairs: "awsPairs",
 });
+walk!(AwsPair {});
 walk!(CredentialFile {});
 walk!(CredentialEnvVar {});
 walk!(Ripgrep {});

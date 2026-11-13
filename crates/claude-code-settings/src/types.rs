@@ -13,6 +13,7 @@ use crate::walk::walk;
 /// `attribution`: what Claude Code adds to commits and pull requests.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Attribution {
     /// The commit trailer; empty hides it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -32,6 +33,7 @@ pub struct Attribution {
 /// JSON on its stdin.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct StatusLine {
     /// `command`.
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
@@ -67,6 +69,7 @@ impl StatusLine {
 /// `fileSuggestion` and `subagentStatusLine`: a `command` handler.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CommandSetting {
     /// `command`.
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
@@ -93,6 +96,7 @@ impl CommandSetting {
 /// `spinnerVerbs`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpinnerVerbs {
     /// Add to the built-in verbs or replace them.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -108,6 +112,7 @@ pub struct SpinnerVerbs {
 /// `spinnerTipsOverride`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SpinnerTips {
     /// Show only these tips.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -123,6 +128,7 @@ pub struct SpinnerTips {
 /// `worktree`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Worktree {
     /// Check out only these directories (sparse, cone mode).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -136,6 +142,9 @@ pub struct Worktree {
     /// Directories to symlink from the main checkout.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub symlink_directories: Option<Vec<String>>,
+    /// Where desktop SSH sessions create worktrees.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<String>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -144,6 +153,7 @@ pub struct Worktree {
 /// An entry of `sshConfigs`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SshConfig {
     /// Its identifier across settings sources.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -172,6 +182,7 @@ pub struct SshConfig {
 /// command.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct SshHostCommand {
     /// Its identifier.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -196,6 +207,7 @@ pub struct SshHostCommand {
 /// `voice`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Voice {
     /// Voice dictation on.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -214,6 +226,7 @@ pub struct Voice {
 /// An entry of `footerLinksRegexes`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct FooterLink {
     /// `regex`.
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
@@ -235,6 +248,7 @@ pub struct FooterLink {
 /// `policyHelper`: a program that computes managed settings.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PolicyHelper {
     /// The program (an absolute path).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -254,6 +268,7 @@ pub struct PolicyHelper {
 /// `spellcheck`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Spellcheck {
     /// Spellcheck on.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -275,6 +290,7 @@ pub struct Spellcheck {
 /// `remote`: cloud sessions.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Remote {
     /// The environment new cloud sessions use.
     #[serde(skip_serializing_if = "Option::is_none")]

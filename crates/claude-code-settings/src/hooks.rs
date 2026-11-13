@@ -17,6 +17,7 @@ pub type Hooks = BTreeMap<HookEvent, Vec<HookMatcher>>;
 /// A matcher group: the hooks to run when `matcher` matches the event.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct HookMatcher {
     /// The pattern to match the event's context (a tool name for tool
     /// events), case-sensitive; unset matches everything.
@@ -72,10 +73,7 @@ pub enum Hook {
 impl Hook {
     /// A command hook running `command`.
     pub fn command(command: impl Into<String>) -> Self {
-        Self::Command(CommandHook {
-            command: Some(command.into()),
-            ..CommandHook::default()
-        })
+        Self::Command(CommandHook::new(command))
     }
 
     /// The hook's `type`.
@@ -147,6 +145,7 @@ impl Unknown for Hook {
 /// A `command` hook.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CommandHook {
     /// The shell command (or, with `args`, the program).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -179,6 +178,14 @@ pub struct CommandHook {
 }
 
 impl CommandHook {
+    /// A command hook running `command` in a shell.
+    pub fn new(command: impl Into<String>) -> Self {
+        Self {
+            command: Some(command.into()),
+            ..Self::default()
+        }
+    }
+
     /// Sets `timeout`, in seconds.
     #[must_use]
     pub fn with_timeout(mut self, seconds: f64) -> Self {
@@ -190,6 +197,7 @@ impl CommandHook {
 /// A `prompt` hook.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PromptHook {
     /// The prompt; `$ARGUMENTS` is the hook input JSON.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -217,6 +225,7 @@ pub struct PromptHook {
 /// An `agent` hook.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct AgentHook {
     /// What to verify; `$ARGUMENTS` is the hook input JSON.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -241,6 +250,7 @@ pub struct AgentHook {
 /// An `http` hook.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct HttpHook {
     /// The URL to `POST` the hook input to.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -268,6 +278,7 @@ pub struct HttpHook {
 /// An `mcp_tool` hook.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct McpToolHook {
     /// The MCP server (already connected).
     #[serde(skip_serializing_if = "Option::is_none")]

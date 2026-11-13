@@ -37,6 +37,7 @@ use crate::walk::{Unknown, walk};
 /// (<https://code.claude.com/docs/en/settings-reference>) has each key.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Settings {
     /// JSON Schema reference for Claude Code settings.
     #[serde(skip_serializing_if = "Option::is_none", rename = "$schema")]
@@ -665,30 +666,40 @@ impl Settings {
         serde_json::from_str(json)
     }
 
-    /// The document as compact JSON, for `--settings` or a settings file.
+    /// The document as compact JSON: the argument of `claude --settings`.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Never: these types serialize to JSON without error (map keys are
-    /// strings, and a non-finite float is written as `null`).
-    pub fn to_json_string(&self) -> String {
-        serde_json::to_string(self).expect("settings serialize to JSON")
+    /// Only if a value can't be written as JSON, which the types in this
+    /// crate don't produce; the error is returned rather than a panic.
+    pub fn to_json_string(&self) -> serde_json::Result<String> {
+        serde_json::to_string(self)
     }
 
-    /// Layers `higher` over `self` the way Claude Code merges settings
-    /// sources (user, project, local, `--settings`, managed: each over the
-    /// ones before it). See [`merge_values`](crate::merge_values) for the
-    /// rules.
+    /// The document as indented JSON, for a settings file.
     ///
-    /// # Panics
+    /// # Errors
     ///
-    /// Never: merging two documents of these types gives a document of
-    /// these types.
-    pub fn merge(&mut self, higher: Settings) {
-        let mut merged = serde_json::to_value(&*self).expect("settings serialize to JSON");
-        let higher = serde_json::to_value(higher).expect("settings serialize to JSON");
-        crate::merge_values(&mut merged, higher);
-        *self = serde_json::from_value(merged).expect("merged settings parse");
+    /// As [`to_json_string`](Self::to_json_string).
+    pub fn to_json_string_pretty(&self) -> serde_json::Result<String> {
+        serde_json::to_string_pretty(self)
+    }
+
+    /// Layers `higher` over `self` the way Claude Code combines its
+    /// settings sources: call it on the lowest layer with each higher one
+    /// in turn (user, then project, then local, then `--settings`, then
+    /// managed). [`merge_values`](crate::merge_values) has the rules.
+    ///
+    /// # Errors
+    ///
+    /// Only if the merged document doesn't parse as `Settings` again,
+    /// which two documents of these types can't produce; `self` is left
+    /// unchanged then.
+    pub fn merge(&mut self, higher: Settings) -> serde_json::Result<()> {
+        let mut merged = serde_json::to_value(&*self)?;
+        crate::merge_values(&mut merged, serde_json::to_value(higher)?);
+        *self = serde_json::from_value(merged)?;
+        Ok(())
     }
 
     /// The dotted paths of the keys this document holds but this crate

@@ -25,6 +25,7 @@ pub enum PluginEnabled {
 /// An entry of `extraKnownMarketplaces`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Marketplace {
     /// Where to fetch it from.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -52,6 +53,7 @@ pub struct Marketplace {
 /// `blockedMarketplaces` and an inline marketplace's plugins.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct Source {
     /// The kind of source.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -117,6 +119,7 @@ impl Source {
 /// A plugin of an inline (`settings`) marketplace.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct InlinePlugin {
     /// Its name.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -132,6 +135,7 @@ pub struct InlinePlugin {
 /// An entry of `allowedChannelPlugins`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ChannelPlugin {
     /// The marketplace it is installed from.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -147,6 +151,7 @@ pub struct ChannelPlugin {
 /// A value of `pluginConfigs`: a plugin's user configuration.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct PluginConfig {
     /// Values for its MCP servers: server → option → value.
     #[serde(skip_serializing_if = "Option::is_none")]

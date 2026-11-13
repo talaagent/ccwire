@@ -3,7 +3,7 @@
 //! Opt-in (CI has no `claude`); offline, no login needed:
 //!
 //! ```sh
-//! CLAUDE_BIN=$(command -v claude) cargo test -p ccwire-settings --test cli -- --ignored
+//! CLAUDE_BIN=$(command -v claude) cargo test -p claude-code-settings --test cli -- --ignored
 //! ```
 
 #![allow(clippy::unwrap_used, reason = "test bodies")]
@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::time::Instant;
 
-use ccwire_settings::Settings;
+use claude_code_settings::Settings;
 
 const FULL: &str = include_str!("fixtures/full.json");
 
@@ -26,7 +26,7 @@ const FULL: &str = include_str!("fixtures/full.json");
 fn run(settings: &str) -> String {
     let bin = std::env::var("CLAUDE_BIN").unwrap_or_else(|_| "claude".into());
     let home: PathBuf =
-        std::env::temp_dir().join(format!("ccwire-settings-cli-{}", std::process::id()));
+        std::env::temp_dir().join(format!("claude-code-settings-cli-{}", std::process::id()));
     let cwd = home.join("cwd");
     std::fs::create_dir_all(&cwd).unwrap();
     let mut child = Command::new(bin)
@@ -72,14 +72,14 @@ fn run(settings: &str) -> String {
 }
 
 #[test]
-#[ignore = "needs a claude binary: CLAUDE_BIN=... cargo test -p ccwire-settings --test cli -- --ignored"]
+#[ignore = "needs a claude binary: CLAUDE_BIN=... cargo test -p claude-code-settings --test cli -- --ignored"]
 fn claude_loads_every_key() {
     // The check itself: a value of the wrong type doesn't load.
     let bad = run(r#"{"cleanupPeriodDays":"x"}"#);
     assert!(bad.contains("did not load"), "a bad document loaded: {bad}");
 
     let settings = Settings::from_json_str(FULL).unwrap();
-    let out = run(&settings.to_json_string());
+    let out = run(&settings.to_json_string().unwrap());
     assert!(!out.contains("did not load"), "{out}");
     assert!(!out.lines().any(|l| l.starts_with("error: ")), "{out}");
     let skipped: Vec<&str> = out

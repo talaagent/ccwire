@@ -13,6 +13,7 @@ use crate::walk::walk;
 /// `modelPicker`: the `/model` picker's rows.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ModelPicker {
     /// The rows, in order.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,6 +29,7 @@ pub struct ModelPicker {
 /// A row of `modelPicker.options`.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ModelPickerOption {
     /// The model, as `--model` takes it.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,6 +51,7 @@ pub struct ModelPickerOption {
 /// `modelPricing`: contracted rates (managed settings).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ModelPricing {
     /// Scales every cost (below 1 a discount, up to 10).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,6 +67,7 @@ pub struct ModelPricing {
 /// A model's rates, in USD per million tokens.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ModelRates {
     /// Input tokens.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -85,6 +89,7 @@ pub struct ModelRates {
 /// A value of `modelSettings`: one model's saved settings.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct ModelSettings {
     /// Its effort level.
     #[serde(skip_serializing_if = "Option::is_none")]

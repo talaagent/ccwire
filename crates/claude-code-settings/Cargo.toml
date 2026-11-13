@@ -1,12 +1,12 @@
 [package]
-name = "ccwire-settings"
+name = "claude-code-settings"
 description = "Claude Code's settings.json as Rust types, with its layer merge"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 readme = "README.md"
 repository.workspace = true
-documentation = "https://docs.rs/ccwire-settings"
+documentation = "https://docs.rs/claude-code-settings"
 authors.workspace = true
 rust-version.workspace = true
 keywords = ["claude", "claude-code", "settings", "serde"]
