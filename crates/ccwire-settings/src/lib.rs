@@ -96,5 +96,10 @@ pub use types::{
     SpinnerTips, SpinnerVerbs, SshConfig, SshHostCommand, StatusLine, Voice, Worktree,
 };
 
+/// The README's examples, compiled as doctests.
+#[cfg(doctest)]
+#[doc = include_str!("../README.md")]
+struct ReadmeDoctests;
+
 /// The keys an object holds that this crate doesn't model, by name.
 pub type Extra = serde_json::Map<alloc::string::String, serde_json::Value>;
