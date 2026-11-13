@@ -4,6 +4,12 @@ Changes are recorded here by release-plz when preparing a release.
 
 ## [Unreleased]
 
+## [0.1.0](https://github.com/talaagent/ccwire/releases/tag/claude-code-settings-v0.1.0) - 2026-11-13
+
+### Other
+
+- rename ccwire-settings, document every key, standalone-crate API ([#18](https://github.com/talaagent/ccwire/pull/18))
+
 ### Added
 
 - `Settings`: every key of Claude Code's settings.json (the published JSON
