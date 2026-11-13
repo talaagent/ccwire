@@ -66,6 +66,7 @@ jobs:
       # feature a crate uses but doesn't declare would still build.
       - run: cargo clippy -p ccwire --lib ${{ matrix.features.flags }} -- -D warnings
       - run: cargo clippy -p ccwire-oauth --lib ${{ matrix.features.flags }} -- -D warnings
+      - run: cargo clippy -p ccwire-settings --lib ${{ matrix.features.flags }} -- -D warnings
 
   test:
     name: test (${{ matrix.features.name }})

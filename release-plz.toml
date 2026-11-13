@@ -16,8 +16,8 @@ semver_check = true
 pr_labels = ["release"]
 pr_draft = false
 
-# Two crates: tag each its own way. ccwire keeps the `v0.1.x` tags it has
-# always had; ccwire-oauth gets `ccwire-oauth-v...` and its own changelog.
+# Tag each crate its own way. ccwire keeps the `v0.1.x` tags it has always
+# had; the others get `<crate>-v...` and their own changelogs.
 [[package]]
 name = "ccwire"
 git_tag_name = "v{{ version }}"
@@ -29,3 +29,9 @@ name = "ccwire-oauth"
 git_tag_name = "ccwire-oauth-v{{ version }}"
 git_release_name = "ccwire-oauth-v{{ version }}"
 changelog_path = "crates/ccwire-oauth/CHANGELOG.md"
+
+[[package]]
+name = "ccwire-settings"
+git_tag_name = "ccwire-settings-v{{ version }}"
+git_release_name = "ccwire-settings-v{{ version }}"
+changelog_path = "crates/ccwire-settings/CHANGELOG.md"

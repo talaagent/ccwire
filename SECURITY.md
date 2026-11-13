@@ -1,7 +1,7 @@
 # Security policy
 
-Security fixes target the latest published versions of `ccwire` and
-`ccwire-oauth`. This project is early in development; review changes before
+Security fixes target the latest published versions of `ccwire`,
+`ccwire-oauth` and `ccwire-settings`. This project is early in development; review changes before
 upgrading and avoid assuming compatibility with every Claude Code release.
 
 Report vulnerabilities privately through

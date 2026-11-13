@@ -1,6 +1,7 @@
 # ccwire: a Rust SDK for Claude Code. `ccwire` is the stream-json protocol
 # and session core, `ccwire-oauth` a client for the Claude account endpoints
-# an OAuth login can call. Each crate keeps its own version, README and
+# an OAuth login can call, `ccwire-settings` Claude Code's settings.json as
+# types. Each crate keeps its own version, README and
 # exclude list; the rest is shared here.
 [workspace]
 resolver = "3"
