@@ -1,8 +1,9 @@
 # Security policy
 
 Security fixes target the latest published versions of `ccwire`,
-`ccwire-oauth` and `ccwire-settings`. This project is early in development; review changes before
-upgrading and avoid assuming compatibility with every Claude Code release.
+`ccwire-oauth` and `claude-code-settings`. This project is early in
+development; review changes before upgrading and avoid assuming
+compatibility with every Claude Code release.
 
 Report vulnerabilities privately through
 [GitHub's private vulnerability reporting](https://github.com/talaagent/ccwire/security/advisories/new).

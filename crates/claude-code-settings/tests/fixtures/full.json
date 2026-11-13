@@ -40,7 +40,10 @@
     "disableAutoMode": "disable",
     "additionalDirectories": [
       "/tmp"
-    ]
+    ],
+    "blockReadsOutsideWorkingDirectories": false,
+    "blockWritesOutsideWorkingDirectories": false,
+    "denyInsteadOfPrompting": true
   },
   "language": "english",
   "model": "sonnet",
@@ -109,7 +112,8 @@
             "asyncRewake": false,
             "shell": "bash",
             "if": "Bash(git *)",
-            "statusMessage": "checking"
+            "statusMessage": "checking",
+            "onFailure": "continue"
           },
           {
             "type": "prompt",
@@ -139,7 +143,8 @@
             ],
             "timeout": 5,
             "if": "Bash(git *)",
-            "statusMessage": "posting"
+            "statusMessage": "posting",
+            "onFailure": "block"
           },
           {
             "type": "mcp_tool",
@@ -276,6 +281,26 @@
       }
     ],
     "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PreModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PostModelSwitch": [
       {
         "hooks": [
           {
@@ -493,7 +518,8 @@
         "url": "https://example.com/marketplace.json",
         "headers": {
           "X-Token": "t"
-        }
+        },
+        "headersHelper": "print-headers"
       }
     },
     "m-hostPattern": {
@@ -611,7 +637,8 @@
       "url": "https://example.com/marketplace.json",
       "headers": {
         "X-Token": "t"
-      }
+      },
+      "headersHelper": "print-headers"
     },
     {
       "source": "npm",
@@ -720,17 +747,66 @@
         {
           "path": "~/.aws/credentials",
           "mode": "deny"
+        },
+        {
+          "path": "~/.config/gh/hosts.yml",
+          "mode": "mask",
+          "extract": "oauth_token:\\s*(\\S+)",
+          "onExtractNoMatch": "deny",
+          "maskDuplicates": true,
+          "injectHosts": [
+            "api.github.com"
+          ]
+        },
+        {
+          "path": "~/.config/app/token.jwt",
+          "mode": "mask",
+          "decode": "jwt",
+          "maskClaims": [
+            "sub"
+          ],
+          "onExtractNoMatch": "warn"
         }
       ],
       "envVars": [
         {
           "name": "AWS_SECRET_ACCESS_KEY",
           "mode": "deny"
+        },
+        {
+          "name": "DATABASE_URL",
+          "mode": "mask",
+          "extract": ":([^:@]+)@",
+          "onExtractNoMatch": "warn",
+          "injectHosts": [
+            "db.example.com"
+          ]
+        },
+        {
+          "name": "ID_TOKEN",
+          "mode": "mask",
+          "decode": "jwt",
+          "maskClaims": [
+            "email"
+          ]
         }
       ],
-      "allowPlaintextInject": false
+      "allowPlaintextInject": false,
+      "sigv4": {
+        "streaming": "passthrough",
+        "presigned": "deny",
+        "sigv4a": "deny"
+      },
+      "awsPairs": [
+        {
+          "accessKeyIdVar": "MY_AWS_KEY_ID",
+          "secretAccessKeyVar": "MY_AWS_SECRET",
+          "sessionTokenVar": "MY_AWS_TOKEN"
+        }
+      ]
     },
-    "allowAppleEvents": false
+    "allowAppleEvents": false,
+    "allowNestedUserNamespaces": false
   },
   "spinnerVerbs": {
     "mode": "append",
@@ -742,8 +818,16 @@
   "spinnerTipsOverride": {
     "excludeDefault": false,
     "tips": [
-      "Tip"
-    ]
+      "Tip",
+      {
+        "id": "review",
+        "text": "Run /review first",
+        "cooldownSessions": 3,
+        "priority": 1
+      }
+    ],
+    "tipsFile": "~/.claude/tips.json",
+    "label": "Team tip"
   },
   "terminalProgressBarEnabled": false,
   "showTurnDuration": false,
@@ -768,7 +852,8 @@
     "bgIsolation": "worktree",
     "symlinkDirectories": [
       "node_modules"
-    ]
+    ],
+    "location": "~/worktrees"
   },
   "parentSettingsBehavior": "first-wins",
   "pluginTrustMessage": "Trusted",
@@ -801,7 +886,8 @@
       "url": "https://example.com/marketplace.json",
       "headers": {
         "X-Token": "t"
-      }
+      },
+      "headersHelper": "print-headers"
     },
     {
       "source": "github",

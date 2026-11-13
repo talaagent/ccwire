@@ -16,7 +16,7 @@ The workspace contains:
 
 - `crates/ccwire`: protocol types, CLI options, framing, and optional async sessions.
 - `crates/ccwire-oauth`: the Claude account client and token types.
-- `crates/ccwire-settings`: Claude Code's settings.json as types, and the layer merge.
+- `crates/claude-code-settings`: Claude Code's settings.json as types, and the layer merge.
 
 Run from the repository root:
 
@@ -47,7 +47,7 @@ between missing and null fields, and retain the turn-ending behavior of malforme
 See [the corpus guide](crates/ccwire/tests/corpus/README.md) for recorded stream-json
 fixtures and scrubbing. OAuth fixtures live in `crates/ccwire-oauth/tests/fixtures`;
 see [their guide](crates/ccwire-oauth/tests/fixtures/README.md). The settings
-schema copy lives in `crates/ccwire-settings/schema`; `scripts/refresh-settings-schema`
+schema copy lives in `crates/claude-code-settings/schema`; `scripts/refresh-settings-schema`
 refetches it, and the crate's `schema` test lists what a new schema added. Tests use recorded
 fixtures and a fake CLI or local HTTP server; normal tests need no account or
 network credentials. Run live examples explicitly, using your own account.
@@ -78,7 +78,7 @@ and merge it after CI passes. `release_always = false` publishes only merged
 release PRs; release-plz publishes crates in dependency order, creates tags,
 and creates GitHub releases. Tags are `v<version>` for `ccwire`,
 `ccwire-oauth-v<version>` for `ccwire-oauth` and
-`ccwire-settings-v<version>` for `ccwire-settings`.
+`claude-code-settings-v<version>` for `claude-code-settings`.
 
 
 
@@ -86,7 +86,7 @@ Check the package and docs.rs pages after releasing:
 
 - [ccwire](https://crates.io/crates/ccwire) · [API docs](https://docs.rs/ccwire)
 - [ccwire-oauth](https://crates.io/crates/ccwire-oauth) · [API docs](https://docs.rs/ccwire-oauth)
-- [ccwire-settings](https://crates.io/crates/ccwire-settings) · [API docs](https://docs.rs/ccwire-settings)
+- [claude-code-settings](https://crates.io/crates/claude-code-settings) · [API docs](https://docs.rs/claude-code-settings)
 
 
 Contributions are licensed under the repository's Apache-2.0 license.

@@ -2,14 +2,14 @@
 
 #![allow(clippy::unwrap_used, reason = "test bodies")]
 
-use ccwire_settings::{
-    CommandHook, CompactWindow, EffortLevel, Hook, HookEvent, HookMatcher, PermissionMode,
-    Settings, merge_values,
+use claude_code_settings::{
+    AttributionSetting, ChannelPluginEntry, CommandHook, CompactWindow, EffortLevel, Hook,
+    HookEvent, HookMatcher, ManagedMcpServers, PermissionMode, Settings, SpinnerTip, merge_values,
 };
 use serde_json::{Value, json};
 
 const FULL: &str = include_str!("fixtures/full.json");
-const TALA_BASE: &str = include_str!("fixtures/tala-base.json");
+const REAL_WORLD: &str = include_str!("fixtures/real-world.json");
 
 /// Every number as an `f64`: a field typed `f64` writes `10` back as
 /// `10.0`, the same JSON number.
@@ -27,7 +27,7 @@ fn normalized(v: Value) -> Value {
 fn round_trip(json: &str) -> Settings {
     let settings = Settings::from_json_str(json).unwrap();
     assert_eq!(settings.unknown_keys(), Vec::<String>::new());
-    let written: Value = serde_json::from_str(&settings.to_json_string()).unwrap();
+    let written: Value = serde_json::from_str(&settings.to_json_string().unwrap()).unwrap();
     let original: Value = serde_json::from_str(json).unwrap();
     assert_eq!(normalized(written), normalized(original));
     settings
@@ -44,7 +44,7 @@ fn full_fixture_round_trips_with_every_key_typed() {
     let perms = s.permissions.unwrap();
     assert_eq!(perms.default_mode, Some(PermissionMode::DontAsk));
     let hooks = s.hooks.unwrap();
-    assert_eq!(hooks.len(), 31);
+    assert_eq!(hooks.len(), 33);
     let pre = &hooks[&HookEvent::PreToolUse][0];
     assert_eq!(pre.matcher.as_deref(), Some("Bash|mcp__.*"));
     let kinds: Vec<_> = pre.hooks.iter().map(|h| h.kind().unwrap()).collect();
@@ -65,9 +65,9 @@ fn full_fixture_round_trips_with_every_key_typed() {
 
 #[test]
 fn real_world_documents_round_trip() {
-    let base = round_trip(TALA_BASE);
+    let base = round_trip(REAL_WORLD);
     assert_eq!(base.output_style.as_deref(), Some("Concise"));
-    // The keys tala-agent's daemon adds on top (scripts/claude-code-smoke).
+    // Keys a program that runs Claude Code adds per session.
     round_trip(
         &json!({
             "autoMemoryDirectory": "/tmp/memory",
@@ -76,14 +76,14 @@ fn real_world_documents_round_trip() {
             "autoCompactEnabled": false,
             "allowManagedHooksOnly": true,
             "disableAllHooks": false,
-            "env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80", "TALA_GOAL": "x"},
+            "env": {"CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "80", "GOAL": "x"},
             "permissions": {"disableBypassPermissionsMode": "disable"},
             "hooks": {
                 "PreToolUse": [{
                     "matcher": "Agent|Task|Bash|WebSearch|WebFetch|mcp__.*",
-                    "hooks": [{"type": "command", "command": "tala-hook --persona-hook", "timeout": 10}],
+                    "hooks": [{"type": "command", "command": "guard --pre-tool-use", "timeout": 10}],
                 }],
-                "Stop": [{"hooks": [{"type": "command", "command": "tala-hook goal", "timeout": 10}]}],
+                "Stop": [{"hooks": [{"type": "command", "command": "guard --stop", "timeout": 10}]}],
             },
         })
         .to_string(),
@@ -135,8 +135,11 @@ fn absent_and_null_stay_apart() {
     assert_eq!(settings(json!({})).teammate_default_model, None);
     let null = settings(json!({"teammateDefaultModel": null}));
     assert_eq!(null.teammate_default_model, Some(None));
-    assert_eq!(null.to_json_string(), r#"{"teammateDefaultModel":null}"#);
-    assert_eq!(Settings::default().to_json_string(), "{}");
+    assert_eq!(
+        null.to_json_string().unwrap(),
+        r#"{"teammateDefaultModel":null}"#
+    );
+    assert_eq!(Settings::default().to_json_string().unwrap(), "{}");
 }
 
 #[test]
@@ -152,24 +155,14 @@ fn a_wrong_type_is_an_error() {
 
 #[test]
 fn built_settings_serialize_as_claude_code_spells_them() {
-    let mut s = Settings {
-        include_co_authored_by: Some(false),
-        force_login_org_uuid: Some(ccwire_settings::OneOrMany::One("org".into())),
-        ..Settings::default()
-    };
+    let mut s = Settings::default();
+    s.include_co_authored_by = Some(false);
+    s.force_login_org_uuid = Some(claude_code_settings::OneOrMany::One("org".into()));
+    let mut check = CommandHook::new("check").with_timeout(10.0);
+    check.run_async = Some(true);
     s.hooks.get_or_insert_default().insert(
         HookEvent::PreToolUse,
-        vec![HookMatcher::matching(
-            "Bash",
-            [Hook::Command(
-                CommandHook {
-                    command: Some("check".into()),
-                    run_async: Some(true),
-                    ..CommandHook::default()
-                }
-                .with_timeout(10.0),
-            )],
-        )],
+        vec![HookMatcher::matching("Bash", [Hook::Command(check)])],
     );
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
@@ -186,7 +179,8 @@ fn built_settings_serialize_as_claude_code_spells_them() {
 #[test]
 fn merge_scalars_take_the_higher_layer() {
     let mut s = settings(json!({"model": "opus", "verbose": true, "effortLevel": "low"}));
-    s.merge(settings(json!({"model": "sonnet", "effortLevel": "high"})));
+    s.merge(settings(json!({"model": "sonnet", "effortLevel": "high"})))
+        .unwrap();
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
         json!({"model": "sonnet", "verbose": true, "effortLevel": "high"})
@@ -204,7 +198,8 @@ fn merge_lists_concatenate_without_repeats() {
         "permissions": {"allow": ["Bash(ls:*)", "Edit"], "ask": ["Bash(git push:*)"], "defaultMode": "dontAsk"},
         "sandbox": {"excludedCommands": ["docker"], "enabled": true},
         "env": {"B": "2"},
-    })));
+    })))
+    .unwrap();
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
         json!({
@@ -227,7 +222,8 @@ fn merge_hooks_combine_per_event() {
     // The same group in both layers runs twice: objects aren't deduplicated.
     s.merge(settings(
         json!({"hooks": {"Stop": [group("b"), group("a")]}}),
-    ));
+    ))
+    .unwrap();
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
         json!({"hooks": {"SessionStart": [group("s")], "Stop": [group("a"), group("b"), group("a")]}})
@@ -248,7 +244,8 @@ fn merge_whole_value_keys() {
         "fallbackModel": ["haiku"],
         "modelPicker": {"options": [{"model": "sonnet"}]},
         "extraKnownMarketplaces": {"a": {"source": {"source": "github", "repo": "y/a"}}},
-    })));
+    })))
+    .unwrap();
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
         json!({
@@ -267,7 +264,8 @@ fn merge_keeps_unknown_keys_and_takes_null_and_type_changes() {
     let mut s = settings(
         json!({"future": {"a": [1], "b": 1}, "teammateDefaultModel": "sonnet", "forceLoginOrgUUID": "x"}),
     );
-    s.merge(settings(json!({"future": {"a": [1, 2]}, "teammateDefaultModel": null, "forceLoginOrgUUID": ["y", "z"]})));
+    s.merge(settings(json!({"future": {"a": [1, 2]}, "teammateDefaultModel": null, "forceLoginOrgUUID": ["y", "z"]})))
+    .unwrap();
     assert_eq!(
         serde_json::to_value(&s).unwrap(),
         json!({"future": {"a": [1, 2], "b": 1}, "teammateDefaultModel": null, "forceLoginOrgUUID": ["y", "z"]})
@@ -284,5 +282,53 @@ fn merge_values_layers_raw_documents() {
     assert_eq!(
         lower,
         json!({"permissions": {"allow": ["Read", "Edit"]}, "model": "opus"})
+    );
+}
+
+#[test]
+fn alternative_shapes_round_trip() {
+    let doc = json!({
+        "attribution": false,
+        "allowedChannelPlugins": ["telegram@official", {"marketplace": "m", "plugin": "p"}],
+        "managedMcpServers": {"docs": {"type": "http", "url": "https://mcp.example.com"}},
+        "spinnerTipsOverride": {"tips": ["plain", {"id": "a", "text": "b", "priority": -2}]},
+        "strictPluginOnlyCustomization": true,
+        "forceLoginOrgUUID": "org",
+        "enabledPlugins": {"a@m": true, "b@m": ["1.0.0"]},
+        "modelSettings": {"m": {"autoCompactWindow": 300_000}},
+    });
+    let s = settings(doc.clone());
+    assert_eq!(s.unknown_keys(), Vec::<String>::new());
+    assert_eq!(serde_json::to_value(&s).unwrap(), doc);
+    assert_eq!(s.attribution, Some(AttributionSetting::Flag(false)));
+    assert!(matches!(
+        s.allowed_channel_plugins.as_deref(),
+        Some([ChannelPluginEntry::Id(_), ChannelPluginEntry::Plugin(_)])
+    ));
+    assert!(matches!(
+        s.managed_mcp_servers,
+        Some(ManagedMcpServers::ByName(_))
+    ));
+    let tips = s.spinner_tips_override.unwrap().tips.unwrap();
+    assert!(matches!(
+        tips.as_slice(),
+        [SpinnerTip::Text(_), SpinnerTip::Entry(_)]
+    ));
+    assert_eq!(
+        s.model_settings.unwrap()["m"].auto_compact_window,
+        Some(CompactWindow::Tokens(300_000))
+    );
+}
+
+#[test]
+fn version_constants() {
+    assert_eq!(claude_code_settings::CLAUDE_CODE_VERSION, "2.1.322");
+    let schema_readme = include_str!("../schema/README.md");
+    assert!(
+        schema_readme.contains(&format!(
+            "Fetched: {}",
+            claude_code_settings::SCHEMA_FETCHED
+        )),
+        "SCHEMA_FETCHED doesn't match schema/README.md: run scripts/refresh-settings-schema and update it"
     );
 }

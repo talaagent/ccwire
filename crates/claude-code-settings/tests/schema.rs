@@ -6,7 +6,7 @@
 
 #![allow(clippy::unwrap_used, reason = "test bodies")]
 
-use ccwire_settings::{
+use claude_code_settings::{
     BgIsolation, CredentialMode, CustomizationKind, DialogTimeout, DiffTool, DisableFlag,
     DisabledFlag, EditorMode, EffortLevel, HookEvent, LoginMethod, NotifChannel, PermissionMode,
     Platform, Settings, Shell, SkillOverride, SourceKind, SourcesBehavior, SpinnerVerbsMode,
