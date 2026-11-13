@@ -703,7 +703,10 @@ impl Settings {
 
 /// `null` as `Some(None)`, so a key set to `null` stays apart from an
 /// absent one (`None`, from `default`).
-#[allow(clippy::option_option, reason = "absent, null and a model are three states")]
+#[allow(
+    clippy::option_option,
+    reason = "absent, null and a model are three states"
+)]
 fn nullable<'de, D: Deserializer<'de>>(d: D) -> Result<Option<Option<String>>, D::Error> {
     Option::<String>::deserialize(d).map(Some)
 }
