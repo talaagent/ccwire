@@ -1,0 +1,1085 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "apiKeyHelper": "false",
+  "autoMemoryEnabled": false,
+  "autoUpdatesChannel": "stable",
+  "awsCredentialExport": "false",
+  "awsAuthRefresh": "false",
+  "claudeMdExcludes": [
+    "**/other/CLAUDE.md"
+  ],
+  "cleanupPeriodDays": 30,
+  "env": {
+    "DISABLE_TELEMETRY": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "includeGitInstructions": false,
+  "includeCoAuthoredBy": false,
+  "plansDirectory": "./plans",
+  "respectGitignore": true,
+  "permissions": {
+    "allow": [
+      "Bash(git diff:*)",
+      "Read",
+      "WebFetch(domain:example.com)",
+      "mcp__memory"
+    ],
+    "deny": [
+      "Bash(rm:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)"
+    ],
+    "defaultMode": "dontAsk",
+    "disableBypassPermissionsMode": "disable",
+    "disableAutoMode": "disable",
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  },
+  "language": "english",
+  "model": "sonnet",
+  "availableModels": [
+    "sonnet",
+    "haiku"
+  ],
+  "modelOverrides": {
+    "claude-sonnet-4-6": "claude-sonnet-4-6"
+  },
+  "effortLevel": "high",
+  "fastMode": false,
+  "fastModePerSessionOptIn": false,
+  "feedbackSurveyRate": 0.05,
+  "enableAllProjectMcpServers": false,
+  "enabledMcpjsonServers": [
+    "memory"
+  ],
+  "disabledMcpjsonServers": [
+    "filesystem"
+  ],
+  "allowedMcpServers": [
+    {
+      "serverName": "memory"
+    },
+    {
+      "serverCommand": [
+        "npx",
+        "-y",
+        "@example/mcp"
+      ]
+    },
+    {
+      "serverUrl": "https://mcp.example.com/*"
+    }
+  ],
+  "deniedMcpServers": [
+    {
+      "serverName": "filesystem"
+    },
+    {
+      "serverCommand": [
+        "false"
+      ]
+    },
+    {
+      "serverUrl": "https://evil.example.com/*"
+    }
+  ],
+  "httpHookAllowedEnvVars": [
+    "TOKEN"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true",
+            "args": [
+              "--flag"
+            ],
+            "timeout": 10,
+            "async": false,
+            "asyncRewake": false,
+            "shell": "bash",
+            "if": "Bash(git *)",
+            "statusMessage": "checking"
+          },
+          {
+            "type": "prompt",
+            "prompt": "Check $ARGUMENTS",
+            "model": "haiku",
+            "timeout": 30,
+            "if": "Bash(git *)",
+            "statusMessage": "asking",
+            "continueOnBlock": true
+          },
+          {
+            "type": "agent",
+            "prompt": "Verify $ARGUMENTS",
+            "model": "haiku",
+            "timeout": 60,
+            "if": "Bash(git *)",
+            "statusMessage": "verifying"
+          },
+          {
+            "type": "http",
+            "url": "http://localhost:8080/hook",
+            "headers": {
+              "Authorization": "Bearer $TOKEN"
+            },
+            "allowedEnvVars": [
+              "TOKEN"
+            ],
+            "timeout": 5,
+            "if": "Bash(git *)",
+            "statusMessage": "posting"
+          },
+          {
+            "type": "mcp_tool",
+            "server": "memory",
+            "tool": "note",
+            "input": {
+              "path": "${tool_input.file_path}"
+            },
+            "timeout": 5,
+            "if": "Bash(git *)",
+            "statusMessage": "calling"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "Elicitation": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "TeammateIdle": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "Setup": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "InstructionsLoaded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "CwdChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "FileChanged": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "WorktreeCreate": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "WorktreeRemove": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PostToolBatch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "TaskCreated": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PermissionDenied": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "UserPromptExpansion": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "MessageDisplay": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "DirectoryAdded": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ]
+  },
+  "disableAllHooks": false,
+  "allowedChannelPlugins": [
+    {
+      "marketplace": "example",
+      "plugin": "channel"
+    }
+  ],
+  "allowedHttpHookUrls": [
+    "http://localhost:*"
+  ],
+  "allowManagedHooksOnly": false,
+  "allowManagedPermissionRulesOnly": false,
+  "statusLine": {
+    "type": "command",
+    "command": "true",
+    "padding": 0,
+    "refreshInterval": 5,
+    "hideVimModeIndicator": false
+  },
+  "fileSuggestion": {
+    "type": "command",
+    "command": "true"
+  },
+  "enabledPlugins": {
+    "formatter@example": true,
+    "linter@example": false,
+    "pinned@example": [
+      "1.0.0"
+    ]
+  },
+  "extraKnownMarketplaces": {
+    "m-url": {
+      "source": {
+        "source": "url",
+        "url": "https://example.com/marketplace.json",
+        "headers": {
+          "X-Token": "t"
+        }
+      }
+    },
+    "m-hostPattern": {
+      "source": {
+        "source": "hostPattern",
+        "hostPattern": "^github\\.example\\.com$"
+      }
+    },
+    "m-github": {
+      "source": {
+        "source": "github",
+        "repo": "example/plugins",
+        "ref": "main",
+        "path": ".claude-plugin/marketplace.json",
+        "skipLfs": true
+      }
+    },
+    "m-git": {
+      "source": {
+        "source": "git",
+        "url": "https://git.example.com/plugins.git",
+        "ref": "v1",
+        "path": ".claude-plugin/marketplace.json",
+        "skipLfs": true
+      }
+    },
+    "m-npm": {
+      "source": {
+        "source": "npm",
+        "package": "@example/plugins"
+      }
+    },
+    "m-file": {
+      "source": {
+        "source": "file",
+        "path": "/opt/plugins/marketplace.json"
+      }
+    },
+    "m-directory": {
+      "source": {
+        "source": "directory",
+        "path": "/opt/plugins"
+      }
+    },
+    "team-inline": {
+      "source": {
+        "source": "settings",
+        "name": "team-inline",
+        "plugins": [
+          {
+            "name": "a",
+            "source": {
+              "source": "github",
+              "repo": "example/a",
+              "ref": "main",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          },
+          {
+            "name": "b",
+            "source": {
+              "source": "url",
+              "url": "https://git.example.com/b.git",
+              "ref": "main",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          },
+          {
+            "name": "c",
+            "source": {
+              "source": "git-subdir",
+              "url": "https://git.example.com/mono.git",
+              "path": "plugins/c",
+              "ref": "main",
+              "sha": "0123456789abcdef0123456789abcdef01234567"
+            }
+          },
+          {
+            "name": "d",
+            "source": {
+              "source": "npm",
+              "package": "@example/d",
+              "version": "1.0.0",
+              "registry": "https://registry.npmjs.org"
+            }
+          }
+        ]
+      },
+      "installLocation": "/tmp/marketplaces/inline",
+      "autoUpdate": false,
+      "lastUpdated": "2026-11-13T00:00:00.000Z"
+    }
+  },
+  "strictKnownMarketplaces": [
+    {
+      "source": "hostPattern",
+      "hostPattern": "^github\\.example\\.com$"
+    },
+    {
+      "source": "github",
+      "repo": "example/plugins",
+      "ref": "main",
+      "path": ".claude-plugin/marketplace.json",
+      "skipLfs": true
+    },
+    {
+      "source": "git",
+      "url": "https://git.example.com/plugins.git",
+      "ref": "v1",
+      "path": ".claude-plugin/marketplace.json",
+      "skipLfs": true
+    },
+    {
+      "source": "url",
+      "url": "https://example.com/marketplace.json",
+      "headers": {
+        "X-Token": "t"
+      }
+    },
+    {
+      "source": "npm",
+      "package": "@example/plugins"
+    },
+    {
+      "source": "file",
+      "path": "/opt/plugins/marketplace.json"
+    },
+    {
+      "source": "directory",
+      "path": "/opt/plugins"
+    },
+    {
+      "source": "pathPattern",
+      "pathPattern": "^/opt/plugins/"
+    },
+    {
+      "source": "skills-dir"
+    }
+  ],
+  "skippedMarketplaces": [
+    "skipped"
+  ],
+  "skippedPlugins": [
+    "skipped@example"
+  ],
+  "forceLoginMethod": "claudeai",
+  "forceLoginOrgUUID": [
+    "00000000-0000-4000-8000-000000000000"
+  ],
+  "otelHeadersHelper": "false",
+  "outputStyle": "Concise",
+  "skipWebFetchPreflight": true,
+  "sandbox": {
+    "network": {
+      "allowUnixSockets": [
+        "/run/docker.sock"
+      ],
+      "allowLocalBinding": false,
+      "httpProxyPort": 18080,
+      "socksProxyPort": 18081,
+      "allowAllUnixSockets": false,
+      "allowedDomains": [
+        "*.example.com"
+      ],
+      "deniedDomains": [
+        "evil.example.com"
+      ],
+      "allowManagedDomainsOnly": false,
+      "allowMachLookup": [
+        "com.example.*"
+      ],
+      "tlsTerminate": {
+        "caCertPath": "/tmp/ca.pem",
+        "caKeyPath": "/tmp/ca.key"
+      },
+      "strictAllowlist": false
+    },
+    "ignoreViolations": {
+      "*": [
+        "/tmp"
+      ]
+    },
+    "excludedCommands": [
+      "git commit *"
+    ],
+    "autoAllowBashIfSandboxed": false,
+    "enableWeakerNetworkIsolation": false,
+    "enableWeakerNestedSandbox": false,
+    "allowUnsandboxedCommands": true,
+    "enabled": false,
+    "filesystem": {
+      "allowWrite": [
+        "/tmp"
+      ],
+      "denyWrite": [
+        "/etc"
+      ],
+      "denyRead": [
+        "~/.ssh"
+      ],
+      "allowRead": [
+        "~/.ssh/known_hosts"
+      ],
+      "allowManagedReadPathsOnly": false,
+      "disabled": false
+    },
+    "ripgrep": {
+      "command": "rg",
+      "args": [
+        "--hidden"
+      ]
+    },
+    "bwrapPath": "/usr/bin/bwrap",
+    "socatPath": "/usr/bin/socat",
+    "failIfUnavailable": false,
+    "enabledPlatforms": [
+      "linux",
+      "macos",
+      "wsl",
+      "windows"
+    ],
+    "credentials": {
+      "files": [
+        {
+          "path": "~/.aws/credentials",
+          "mode": "deny"
+        }
+      ],
+      "envVars": [
+        {
+          "name": "AWS_SECRET_ACCESS_KEY",
+          "mode": "deny"
+        }
+      ],
+      "allowPlaintextInject": false
+    },
+    "allowAppleEvents": false
+  },
+  "spinnerVerbs": {
+    "mode": "append",
+    "verbs": [
+      "Pondering"
+    ]
+  },
+  "spinnerTipsEnabled": false,
+  "spinnerTipsOverride": {
+    "excludeDefault": false,
+    "tips": [
+      "Tip"
+    ]
+  },
+  "terminalProgressBarEnabled": false,
+  "showTurnDuration": false,
+  "skillOverrides": {
+    "a": "on",
+    "b": "name-only",
+    "c": "user-invocable-only",
+    "d": "off"
+  },
+  "prefersReducedMotion": true,
+  "prUrlTemplate": "https://reviews.example.com/{owner}/{repo}/pull/{number}",
+  "alwaysThinkingEnabled": true,
+  "companyAnnouncements": [
+    "Hello"
+  ],
+  "teammateMode": "in-process",
+  "worktree": {
+    "sparsePaths": [
+      "src"
+    ],
+    "baseRef": "fresh",
+    "bgIsolation": "worktree",
+    "symlinkDirectories": [
+      "node_modules"
+    ]
+  },
+  "parentSettingsBehavior": "first-wins",
+  "pluginTrustMessage": "Trusted",
+  "pluginConfigs": {
+    "agents-md@builtin": {
+      "mcpServers": {
+        "memory": {
+          "dir": "/tmp",
+          "limit": 10,
+          "on": true,
+          "tags": [
+            "a"
+          ]
+        }
+      },
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md",
+        "n": 1,
+        "flag": false,
+        "list": [
+          "x"
+        ]
+      }
+    }
+  },
+  "allowManagedMcpServersOnly": false,
+  "blockedMarketplaces": [
+    {
+      "source": "url",
+      "url": "https://example.com/marketplace.json",
+      "headers": {
+        "X-Token": "t"
+      }
+    },
+    {
+      "source": "github",
+      "repo": "example/plugins",
+      "ref": "main",
+      "path": ".claude-plugin/marketplace.json",
+      "skipLfs": true
+    },
+    {
+      "source": "git",
+      "url": "https://git.example.com/plugins.git",
+      "ref": "v1",
+      "path": ".claude-plugin/marketplace.json",
+      "skipLfs": true
+    },
+    {
+      "source": "npm",
+      "package": "@example/plugins"
+    },
+    {
+      "source": "file",
+      "path": "/opt/plugins/marketplace.json"
+    },
+    {
+      "source": "directory",
+      "path": "/opt/plugins"
+    },
+    {
+      "source": "hostPattern",
+      "hostPattern": "^github\\.example\\.com$"
+    },
+    {
+      "source": "pathPattern",
+      "pathPattern": "^/opt/plugins/"
+    },
+    {
+      "source": "skills-dir"
+    }
+  ],
+  "agent": "reviewer",
+  "autoMemoryDirectory": "/tmp/memory",
+  "autoMode": {
+    "allow": [
+      "$defaults"
+    ],
+    "soft_deny": [
+      "$defaults"
+    ],
+    "environment": [
+      "$defaults"
+    ],
+    "hard_deny": [
+      "$defaults"
+    ],
+    "classifyAllShell": false
+  },
+  "channelsEnabled": false,
+  "defaultShell": "bash",
+  "disableDeepLinkRegistration": "disable",
+  "disableSkillShellExecution": false,
+  "forceRemoteSettingsRefresh": false,
+  "minimumVersion": "1.0.0",
+  "showClearContextOnPlanAccept": false,
+  "showThinkingSummaries": false,
+  "skipDangerousModePermissionPrompt": true,
+  "strictPluginOnlyCustomization": [
+    "skills",
+    "agents",
+    "hooks",
+    "mcp"
+  ],
+  "tui": "default",
+  "viewMode": "default",
+  "useAutoModeDuringPlan": false,
+  "voiceEnabled": false,
+  "wslInheritsWindowsSettings": false,
+  "subagentStatusLine": {
+    "type": "command",
+    "command": "true"
+  },
+  "advisorModel": "opus",
+  "autoCompactEnabled": false,
+  "disableAgentView": false,
+  "editorMode": "normal",
+  "enforceAvailableModels": false,
+  "fallbackModel": [
+    "haiku"
+  ],
+  "fileCheckpointingEnabled": true,
+  "gcpAuthRefresh": "false",
+  "managedMcpServers": [
+    {
+      "name": "memory",
+      "type": "http",
+      "url": "https://mcp.example.com"
+    }
+  ],
+  "skillListingMaxDescChars": 1536,
+  "preferredNotifChannel": "auto",
+  "pluginSuggestionMarketplaces": [
+    "example"
+  ],
+  "requiredMaximumVersion": "99.0.0",
+  "requiredMinimumVersion": "1.0.0",
+  "respondToBashCommands": true,
+  "skillListingBudgetFraction": 0.01,
+  "sshConfigs": [
+    {
+      "id": "dev",
+      "name": "Dev",
+      "sshHost": "user@dev.example.com",
+      "sshPort": 22,
+      "sshIdentityFile": "~/.ssh/id_ed25519",
+      "startDirectory": "~/src"
+    }
+  ],
+  "sshHostAllowlist": [
+    "dev.example.com"
+  ],
+  "theme": "dark",
+  "voice": {
+    "enabled": false,
+    "mode": "hold",
+    "autoSubmit": false
+  },
+  "wheelScrollAccelerationEnabled": false,
+  "disableBundledSkills": false,
+  "awaySummaryEnabled": false,
+  "autoScrollEnabled": true,
+  "allowAllClaudeAiMcps": false,
+  "agentPushNotifEnabled": false,
+  "axScreenReader": false,
+  "claudeMd": "Be brief.",
+  "disableArtifact": false,
+  "disableAutoMode": "disable",
+  "disableClaudeAiConnectors": true,
+  "disableRemoteControl": true,
+  "disableWorkflows": false,
+  "footerLinksRegexes": [
+    {
+      "type": "regex",
+      "pattern": "PR #(?<number>\\d+)",
+      "url": "https://github.com/example/repo/pull/{number}",
+      "label": "PR {number}"
+    }
+  ],
+  "inputNeededNotifEnabled": false,
+  "policyHelper": {
+    "path": "false",
+    "timeoutMs": 1000,
+    "refreshIntervalMs": 0
+  },
+  "remoteControlAtStartup": false,
+  "syntaxHighlightingDisabled": false,
+  "verbose": false,
+  "workflowKeywordTriggerEnabled": false,
+  "askUserQuestionTimeout": "never",
+  "teammateDefaultModel": null,
+  "workflowSizeGuideline": "unrestricted",
+  "enableArtifact": true,
+  "permissionExplainerEnabled": false,
+  "diffTool": "terminal",
+  "externalEditorContext": false,
+  "autoConnectIde": false,
+  "autoInstallIdeExtension": false,
+  "emojiCompletionEnabled": true,
+  "vimInsertModeRemaps": {
+    "jk": "<Esc>"
+  },
+  "processWrapper": "/usr/bin/env",
+  "forceLoginGatewayUrl": "https://claude-gateway.example.com",
+  "disableSideloadFlags": false,
+  "browserExternalPageTools": "disabled",
+  "disableBrowserExternalNavigation": true,
+  "disableMobileSimulatorTools": true,
+  "requireCoworkFullVmSandbox": false,
+  "allowClaudeInChromeWithManagedMcp": false,
+  "allowedProviders": [
+    "anthropic",
+    "bedrock",
+    "vertex",
+    "foundry",
+    "anthropicAws",
+    "mantle",
+    "customEndpoint",
+    "gateway"
+  ],
+  "appendPlugins": [
+    "tail@example"
+  ],
+  "autoCompactWindow": 200000,
+  "autoContinueAtUsageLimit": false,
+  "availableModelsMatch": "prefix",
+  "bashEditDiffEnabled": true,
+  "bashOutputMaxChars": 30000,
+  "crossSessionInbound": "hold",
+  "deniedModels": [
+    "claude-opus-4-0"
+  ],
+  "desktopSessionCleanupPeriodDays": 30,
+  "dialogExpiry": "10m",
+  "disableCommandPluginSources": true,
+  "disableDesktopLocalSessions": false,
+  "disableRemotePreviewScripts": true,
+  "enableWorkflows": false,
+  "feedbackDrafts": "off",
+  "gatewayInternalNetworks": [
+    "100.64.0.0/10"
+  ],
+  "idleCompaction": false,
+  "isolatePeerMachines": true,
+  "keybindingFlavor": "classic",
+  "managedSourcesBehavior": "first-wins",
+  "maxEffortLevel": "max",
+  "maxProseWidth": 100,
+  "modelPicker": {
+    "options": [
+      {
+        "model": "opus",
+        "label": "Opus",
+        "description": "Deep work",
+        "behavesAs": "claude-opus-4-8"
+      }
+    ],
+    "replaceBuiltInOptions": false
+  },
+  "modelPricing": {
+    "multiplier": 0.85,
+    "overrides": {
+      "claude-sonnet-4-6": {
+        "input": 2.4,
+        "output": 12,
+        "cacheRead": 0.24,
+        "cacheWrite": 3
+      }
+    }
+  },
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "high",
+      "maxEffortLevel": "xhigh",
+      "autoCompactWindow": "auto"
+    },
+    "claude-sonnet-5-5": {
+      "autoCompactWindow": 400000
+    }
+  },
+  "prependPlugins": [
+    "head@example"
+  ],
+  "promptCacheTtl": "1h",
+  "promptSuggestionEnabled": false,
+  "skipAutoPermissionPrompt": true,
+  "spellcheck": {
+    "enabled": false,
+    "checker": "auto",
+    "language": "en_US",
+    "color": "red"
+  },
+  "sshHostCommands": [
+    {
+      "id": "box",
+      "name": "Box",
+      "command": "ssh box",
+      "sshIdentityFile": "~/.ssh/id_ed25519",
+      "startDirectory": "~/src"
+    }
+  ],
+  "subagentPromptCacheTtl": "5m",
+  "switchModelsOnFlag": true,
+  "syncClaudeAiPlugins": false,
+  "syncClaudeAiSkills": false,
+  "taskOutputMaxChars": 30000,
+  "terminalTitleFromRename": true,
+  "timeFormat": "24-hour",
+  "timeZone": "Asia/Manila",
+  "ultracode": false,
+  "remote": {
+    "defaultEnvironmentId": "env_0123"
+  }
+}

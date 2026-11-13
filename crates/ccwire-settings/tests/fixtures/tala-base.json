@@ -1,0 +1,93 @@
+{
+  "includeCoAuthoredBy": false,
+  "attribution": {
+    "commit": "",
+    "pr": "",
+    "sessionUrl": false
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
+    "ENABLE_LSP_TOOL": "1"
+  },
+  "outputStyle": "Concise",
+  "skipDangerousModePermissionPrompt": true,
+  "sandbox": {
+    "excludedCommands": ["git commit *", "git tag *"]
+  },
+  "pluginConfigs": {
+    "agents-md@builtin": {
+      "options": {
+        "instructionFiles": "claude-md-and-agents-md"
+      }
+    }
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ast-grep:*)",
+      "Bash(bun add:*)",
+      "Bash(bun create:*)",
+      "Bash(bun info:*)",
+      "Bash(bun init:*)",
+      "Bash(bun install:*)",
+      "Bash(bun run build)",
+      "Bash(bun run clean)",
+      "Bash(bun run lint)",
+      "Bash(bun run lint:*)",
+      "Bash(bun run lint:fix)",
+      "Bash(bun run test)",
+      "Bash(bun run typecheck)",
+      "Bash(bun run typecheck:*)",
+      "Bash(bun test:*)",
+      "Bash(bunx:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo check:*)",
+      "Bash(cargo clippy:*)",
+      "Bash(cargo doc:*)",
+      "Bash(cargo fmt:*)",
+      "Bash(cargo run:*)",
+      "Bash(cat:*)",
+      "Bash(claude:*)",
+      "Bash(echo:*)",
+      "Bash(find:*)",
+      "Bash(gh issue view:*)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh release view:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh search:*)",
+      "Bash(git blame:*)",
+      "Bash(git cat-file:*)",
+      "Bash(git describe:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git shortlog:*)",
+      "Bash(git show:*)",
+      "Bash(git stash list:*)",
+      "Bash(git status:*)",
+      "Bash(grep:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(nix eval:*)",
+      "Bash(nix flake show:*)",
+      "Bash(nix search:*)",
+      "Bash(rg:*)",
+      "Bash(tail:*)",
+      "Bash(touch:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch"
+    ]
+  }
+}
