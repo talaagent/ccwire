@@ -1,7 +1,7 @@
 [package]
 name = "ccwire"
 description = "A Rust SDK for Claude Code: the stream-json protocol, typed"
-version = "0.1.3"
+version = "0.1.2"
 edition.workspace = true
 license.workspace = true
 # The repository README (a symlink): the crate's README on crates.io.
