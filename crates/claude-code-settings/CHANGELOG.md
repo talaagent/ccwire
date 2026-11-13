@@ -4,6 +4,12 @@ Changes are recorded here by release-plz when preparing a release.
 
 ## [Unreleased]
 
+## [0.1.1](https://github.com/talaagent/ccwire/compare/claude-code-settings-v0.1.0...claude-code-settings-v0.1.1) - 2026-11-13
+
+### Other
+
+- release ([#17](https://github.com/talaagent/ccwire/pull/17))
+
 ## [0.1.0](https://github.com/talaagent/ccwire/releases/tag/claude-code-settings-v0.1.0) - 2026-11-13
 
 ### Other
