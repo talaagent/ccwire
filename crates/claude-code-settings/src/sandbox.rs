@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 
 use crate::Extra;
-use crate::enums::{CredentialMode, Platform};
+use crate::enums::{CredentialMode, ExtractNoMatch, Platform, Sigv4Action, TokenDecode};
 use crate::walk::walk;
 
 /// `sandbox`.
@@ -177,6 +177,9 @@ pub struct SandboxCredentials {
     /// Masked variables that form one AWS credential.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aws_pairs: Option<Vec<AwsPair>>,
+    /// What the proxy does with AWS requests it can't re-sign.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sigv4: Option<Sigv4>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -193,6 +196,24 @@ pub struct CredentialFile {
     /// `deny`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<CredentialMode>,
+    /// A regex whose group 1 is the part to mask.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extract: Option<String>,
+    /// What happens when nothing matches.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_extract_no_match: Option<ExtractNoMatch>,
+    /// Mask JSON Web Tokens.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decode: Option<TokenDecode>,
+    /// The JWT claims to mask.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mask_claims: Option<Vec<String>>,
+    /// Also mask copies of the value elsewhere in the file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mask_duplicates: Option<bool>,
+    /// The hosts the real value is sent to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inject_hosts: Option<Vec<String>>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -209,6 +230,21 @@ pub struct CredentialEnvVar {
     /// `deny`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<CredentialMode>,
+    /// A regex whose group 1 is the part to mask.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub extract: Option<String>,
+    /// What happens when nothing matches.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_extract_no_match: Option<ExtractNoMatch>,
+    /// Mask JSON Web Tokens.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decode: Option<TokenDecode>,
+    /// The JWT claims to mask.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mask_claims: Option<Vec<String>>,
+    /// The hosts the real value is sent to.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub inject_hosts: Option<Vec<String>>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -228,6 +264,25 @@ pub struct AwsPair {
     /// The session token variable.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub session_token_var: Option<String>,
+    /// Keys this crate doesn't model.
+    #[serde(flatten)]
+    pub extra: Extra,
+}
+
+/// `sandbox.credentials.sigv4`.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct Sigv4 {
+    /// aws-chunked streaming uploads.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub streaming: Option<Sigv4Action>,
+    /// Presigned URLs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub presigned: Option<Sigv4Action>,
+    /// SigV4A signatures.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sigv4a: Option<Sigv4Action>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -264,8 +319,10 @@ walk!(SandboxCredentials {
     files: "files",
     env_vars: "envVars",
     aws_pairs: "awsPairs",
+    sigv4: "sigv4",
 });
 walk!(AwsPair {});
+walk!(Sigv4 {});
 walk!(CredentialFile {});
 walk!(CredentialEnvVar {});
 walk!(Ripgrep {});

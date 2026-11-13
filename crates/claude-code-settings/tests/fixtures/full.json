@@ -518,7 +518,8 @@
         "url": "https://example.com/marketplace.json",
         "headers": {
           "X-Token": "t"
-        }
+        },
+        "headersHelper": "print-headers"
       }
     },
     "m-hostPattern": {
@@ -636,7 +637,8 @@
       "url": "https://example.com/marketplace.json",
       "headers": {
         "X-Token": "t"
-      }
+      },
+      "headersHelper": "print-headers"
     },
     {
       "source": "npm",
@@ -745,15 +747,56 @@
         {
           "path": "~/.aws/credentials",
           "mode": "deny"
+        },
+        {
+          "path": "~/.config/gh/hosts.yml",
+          "mode": "mask",
+          "extract": "oauth_token:\\s*(\\S+)",
+          "onExtractNoMatch": "deny",
+          "maskDuplicates": true,
+          "injectHosts": [
+            "api.github.com"
+          ]
+        },
+        {
+          "path": "~/.config/app/token.jwt",
+          "mode": "mask",
+          "decode": "jwt",
+          "maskClaims": [
+            "sub"
+          ],
+          "onExtractNoMatch": "warn"
         }
       ],
       "envVars": [
         {
           "name": "AWS_SECRET_ACCESS_KEY",
           "mode": "deny"
+        },
+        {
+          "name": "DATABASE_URL",
+          "mode": "mask",
+          "extract": ":([^:@]+)@",
+          "onExtractNoMatch": "warn",
+          "injectHosts": [
+            "db.example.com"
+          ]
+        },
+        {
+          "name": "ID_TOKEN",
+          "mode": "mask",
+          "decode": "jwt",
+          "maskClaims": [
+            "email"
+          ]
         }
       ],
       "allowPlaintextInject": false,
+      "sigv4": {
+        "streaming": "passthrough",
+        "presigned": "deny",
+        "sigv4a": "deny"
+      },
       "awsPairs": [
         {
           "accessKeyIdVar": "MY_AWS_KEY_ID",
@@ -775,8 +818,16 @@
   "spinnerTipsOverride": {
     "excludeDefault": false,
     "tips": [
-      "Tip"
-    ]
+      "Tip",
+      {
+        "id": "review",
+        "text": "Run /review first",
+        "cooldownSessions": 3,
+        "priority": 1
+      }
+    ],
+    "tipsFile": "~/.claude/tips.json",
+    "label": "Team tip"
   },
   "terminalProgressBarEnabled": false,
   "showTurnDuration": false,
@@ -835,7 +886,8 @@
       "url": "https://example.com/marketplace.json",
       "headers": {
         "X-Token": "t"
-      }
+      },
+      "headersHelper": "print-headers"
     },
     {
       "source": "github",

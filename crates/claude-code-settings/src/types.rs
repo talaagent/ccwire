@@ -1,6 +1,7 @@
 //! The other objects: attribution, status line, spinner, worktree, SSH,
 //! voice, footer links, policy helper, spellcheck, remote.
 
+use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::Extra;
 use crate::enums::{BgIsolation, SpellChecker, SpinnerVerbsMode, VoiceMode, WorktreeBaseRef};
-use crate::walk::walk;
+use crate::walk::{Unknown, walk};
 
 /// `attribution`: what Claude Code adds to commits and pull requests.
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
@@ -27,6 +28,25 @@ pub struct Attribution {
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
+}
+
+/// `attribution`: the object, or `false` to hide all attribution.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum AttributionSetting {
+    /// `false` hides all attribution.
+    Flag(bool),
+    /// What to add.
+    Custom(Attribution),
+}
+
+impl Unknown for AttributionSetting {
+    fn unknown(&self, path: &str, out: &mut Vec<String>) {
+        if let Self::Custom(a) = self {
+            a.unknown(path, out);
+        }
+    }
 }
 
 /// `statusLine`: a command that prints the status line from the session
@@ -119,10 +139,68 @@ pub struct SpinnerTips {
     pub exclude_default: Option<bool>,
     /// The tips.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tips: Option<Vec<String>>,
+    pub tips: Option<Vec<SpinnerTip>>,
+    /// A JSON file of more tips.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tips_file: Option<String>,
+    /// The prefix shown before these tips.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
+}
+
+/// An entry of `spinnerTipsOverride.tips`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum SpinnerTip {
+    /// The tip's text.
+    Text(String),
+    /// A tip with an id, a cooldown and a priority.
+    Entry(TipEntry),
+}
+
+impl Unknown for SpinnerTip {
+    fn unknown(&self, path: &str, out: &mut Vec<String>) {
+        if let Self::Entry(t) = self {
+            t.unknown(path, out);
+        }
+    }
+}
+
+/// A tip object.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[non_exhaustive]
+pub struct TipEntry {
+    /// Its id.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<String>,
+    /// Its text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+    /// Sessions to wait before showing it again.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cooldown_sessions: Option<u64>,
+    /// Its priority, -10 to 10.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub priority: Option<i64>,
+    /// Keys this crate doesn't model.
+    #[serde(flatten)]
+    pub extra: Extra,
+}
+
+/// `managedMcpServers`: MCP server configurations, by name or as a list.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum ManagedMcpServers {
+    /// Server name → its `.mcp.json` configuration.
+    ByName(BTreeMap<String, Extra>),
+    /// A list of configurations.
+    List(Vec<Extra>),
 }
 
 /// `worktree`.
@@ -315,7 +393,8 @@ walk!(Attribution {});
 walk!(StatusLine {});
 walk!(CommandSetting {});
 walk!(SpinnerVerbs {});
-walk!(SpinnerTips {});
+walk!(SpinnerTips { tips: "tips" });
+walk!(TipEntry {});
 walk!(Worktree {});
 walk!(SshConfig {});
 walk!(SshHostCommand {});

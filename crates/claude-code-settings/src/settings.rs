@@ -5,7 +5,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 use serde::{Deserialize, Deserializer, Serialize};
-use serde_json::{Map, Value};
 
 use crate::Extra;
 use crate::enums::{
@@ -18,12 +17,13 @@ use crate::hooks::Hooks;
 use crate::models::{ModelPicker, ModelPricing, ModelSettings};
 use crate::permissions::{AutoMode, McpServerRule, Permissions};
 use crate::plugins::{
-    ChannelPlugin, Marketplace, PluginConfig, PluginEnabled, Source, StrictCustomization,
+    ChannelPluginEntry, Marketplace, PluginConfig, PluginEnabled, Source, StrictCustomization,
 };
 use crate::sandbox::Sandbox;
 use crate::types::{
-    Attribution, CommandSetting, FooterLink, OneOrMany, PolicyHelper, Remote, Spellcheck,
-    SpinnerTips, SpinnerVerbs, SshConfig, SshHostCommand, StatusLine, Voice, Worktree,
+    AttributionSetting, CommandSetting, FooterLink, ManagedMcpServers, OneOrMany, PolicyHelper,
+    Remote, Spellcheck, SpinnerTips, SpinnerVerbs, SshConfig, SshHostCommand, StatusLine, Voice,
+    Worktree,
 };
 use crate::walk::{Unknown, walk};
 
@@ -68,7 +68,7 @@ pub struct Settings {
     pub env: Option<BTreeMap<String, String>>,
     /// Customize the attribution Claude Code adds to commits and pull requests.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub attribution: Option<Attribution>,
+    pub attribution: Option<AttributionSetting>,
     /// Remove the built-in commit and PR instructions from Claude's context.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub include_git_instructions: Option<bool>,
@@ -136,7 +136,7 @@ pub struct Settings {
     pub disable_all_hooks: Option<bool>,
     /// Replace the default allowlist of channel plugins that can push messages.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub allowed_channel_plugins: Option<Vec<ChannelPlugin>>,
+    pub allowed_channel_plugins: Option<Vec<ChannelPluginEntry>>,
     /// Limit which URLs HTTP hooks can target.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_http_hook_urls: Option<Vec<String>>,
@@ -328,7 +328,7 @@ pub struct Settings {
     pub gcp_auth_refresh: Option<String>,
     /// Provide remote MCP servers to every user alongside the ones they add.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub managed_mcp_servers: Option<Vec<Map<String, Value>>>,
+    pub managed_mcp_servers: Option<ManagedMcpServers>,
     /// Cap each skill's description length in the skill listing.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub skill_listing_max_desc_chars: Option<u64>,

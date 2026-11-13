@@ -50,7 +50,11 @@
 //!
 //! Licensed under the Apache License, Version 2.0 (`LICENSE`).
 
-#![warn(missing_docs)]
+#![deny(missing_docs)]
+#![allow(
+    clippy::doc_markdown,
+    reason = "the docs quote Claude Code's settings reference, product names and all"
+)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
 extern crate alloc;
@@ -68,11 +72,11 @@ mod walk;
 
 pub use enums::{
     BgIsolation, CacheTtl, CredentialMode, CustomizationKind, DialogTimeout, DiffTool, DisableFlag,
-    DisabledFlag, EditorMode, EffortLevel, FeedbackDrafts, HookEvent, HookOnFailure, InboundMode,
-    KeybindingFlavor, LoginMethod, ModelMatch, NotifChannel, PermissionMode, Platform, Provider,
-    Shell, SkillOverride, SourceKind, SourcesBehavior, SpellChecker, SpinnerVerbsMode,
-    TeammateMode, Theme, TimeFormat, Tui, UpdatesChannel, ViewMode, VoiceMode, WorkflowSize,
-    WorktreeBaseRef,
+    DisabledFlag, EditorMode, EffortLevel, ExtractNoMatch, FeedbackDrafts, HookEvent,
+    HookOnFailure, InboundMode, KeybindingFlavor, LoginMethod, ModelMatch, NotifChannel,
+    PermissionMode, Platform, Provider, Shell, Sigv4Action, SkillOverride, SourceKind,
+    SourcesBehavior, SpellChecker, SpinnerVerbsMode, TeammateMode, Theme, TimeFormat, TokenDecode,
+    Tui, UpdatesChannel, ViewMode, VoiceMode, WorkflowSize, WorktreeBaseRef,
 };
 pub use hooks::{
     AgentHook, CommandHook, Hook, HookMatcher, Hooks, HttpHook, McpToolHook, PromptHook,
@@ -83,17 +87,18 @@ pub use models::{
 };
 pub use permissions::{AutoMode, McpServerRule, Permissions};
 pub use plugins::{
-    ChannelPlugin, InlinePlugin, Marketplace, OptionValue, PluginConfig, PluginEnabled, Source,
-    StrictCustomization,
+    ChannelPlugin, ChannelPluginEntry, InlinePlugin, Marketplace, OptionValue, PluginConfig,
+    PluginEnabled, Source, StrictCustomization,
 };
 pub use sandbox::{
     AwsPair, CredentialEnvVar, CredentialFile, Ripgrep, Sandbox, SandboxCredentials,
-    SandboxFilesystem, SandboxNetwork, TlsTerminate,
+    SandboxFilesystem, SandboxNetwork, Sigv4, TlsTerminate,
 };
 pub use settings::Settings;
 pub use types::{
-    Attribution, CommandSetting, FooterLink, OneOrMany, PolicyHelper, Remote, Spellcheck,
-    SpinnerTips, SpinnerVerbs, SshConfig, SshHostCommand, StatusLine, Voice, Worktree,
+    Attribution, AttributionSetting, CommandSetting, FooterLink, ManagedMcpServers, OneOrMany,
+    PolicyHelper, Remote, Spellcheck, SpinnerTip, SpinnerTips, SpinnerVerbs, SshConfig,
+    SshHostCommand, StatusLine, TipEntry, Voice, Worktree,
 };
 
 /// The README's examples, compiled as doctests.

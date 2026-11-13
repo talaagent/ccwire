@@ -382,6 +382,8 @@ string_enum! {
     pub enum CredentialMode {
         /// Hide it from sandboxed commands.
         Deny = "deny",
+        /// Show sandboxed commands a placeholder.
+        Mask = "mask",
     }
 }
 
@@ -620,5 +622,35 @@ string_enum! {
         Continue = "continue",
         /// The action is blocked.
         Block = "block",
+    }
+}
+
+string_enum! {
+    /// A credential's `onExtractNoMatch`.
+    pub enum ExtractNoMatch {
+        /// Leave it unmasked.
+        Warn = "warn",
+        /// Hide it.
+        Deny = "deny",
+        /// Stop sandbox setup.
+        Error = "error",
+    }
+}
+
+string_enum! {
+    /// A credential's `decode`.
+    pub enum TokenDecode {
+        /// JSON Web Tokens.
+        Jwt = "jwt",
+    }
+}
+
+string_enum! {
+    /// A value of `sandbox.credentials.sigv4`.
+    pub enum Sigv4Action {
+        /// Fail the request.
+        Deny = "deny",
+        /// Forward it signed with the placeholder.
+        Passthrough = "passthrough",
     }
 }

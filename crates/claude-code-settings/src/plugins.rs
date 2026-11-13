@@ -9,7 +9,7 @@ use serde_json::Number;
 
 use crate::Extra;
 use crate::enums::{CustomizationKind, SourceKind};
-use crate::walk::walk;
+use crate::walk::{Unknown, walk};
 
 /// A value of `enabledPlugins`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -89,6 +89,9 @@ pub struct Source {
     /// `url`: request headers.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<BTreeMap<String, String>>,
+    /// `url`: a command that prints request headers.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headers_helper: Option<String>,
     /// `hostPattern`: the git hosts to trust.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub host_pattern: Option<String>,
@@ -146,6 +149,25 @@ pub struct ChannelPlugin {
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
+}
+
+/// An entry of `allowedChannelPlugins`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+#[non_exhaustive]
+pub enum ChannelPluginEntry {
+    /// `plugin@marketplace`.
+    Id(String),
+    /// The object form.
+    Plugin(ChannelPlugin),
+}
+
+impl Unknown for ChannelPluginEntry {
+    fn unknown(&self, path: &str, out: &mut Vec<String>) {
+        if let Self::Plugin(p) = self {
+            p.unknown(path, out);
+        }
+    }
 }
 
 /// A value of `pluginConfigs`: a plugin's user configuration.
