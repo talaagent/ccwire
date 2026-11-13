@@ -602,9 +602,23 @@ string_enum! {
         SessionStart = "SessionStart",
         /// When a session ends.
         SessionEnd = "SessionEnd",
+        /// Before the model switches.
+        PreModelSwitch = "PreModelSwitch",
+        /// After the model switches.
+        PostModelSwitch = "PostModelSwitch",
         /// While assistant text is displayed.
         MessageDisplay = "MessageDisplay",
         /// After `/add-dir` registers a working directory (undocumented).
         DirectoryAdded = "DirectoryAdded",
+    }
+}
+
+string_enum! {
+    /// A hook's `onFailure`.
+    pub enum HookOnFailure {
+        /// The action goes ahead.
+        Continue = "continue",
+        /// The action is blocked.
+        Block = "block",
     }
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
 use crate::Extra;
-use crate::enums::{HookEvent, Shell};
+use crate::enums::{HookEvent, HookOnFailure, Shell};
 use crate::walk::{Unknown, join, walk};
 
 /// `hooks`: the matcher groups of each event, in the order they run.
@@ -172,6 +172,9 @@ pub struct CommandHook {
     /// The spinner message while it runs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
+    /// Whether the action goes ahead when the hook fails.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_failure: Option<HookOnFailure>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,
@@ -270,6 +273,9 @@ pub struct HttpHook {
     /// The spinner message while it runs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
+    /// Whether the action goes ahead when the hook fails.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub on_failure: Option<HookOnFailure>,
     /// Keys this crate doesn't model.
     #[serde(flatten)]
     pub extra: Extra,

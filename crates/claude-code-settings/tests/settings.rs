@@ -44,7 +44,7 @@ fn full_fixture_round_trips_with_every_key_typed() {
     let perms = s.permissions.unwrap();
     assert_eq!(perms.default_mode, Some(PermissionMode::DontAsk));
     let hooks = s.hooks.unwrap();
-    assert_eq!(hooks.len(), 31);
+    assert_eq!(hooks.len(), 33);
     let pre = &hooks[&HookEvent::PreToolUse][0];
     assert_eq!(pre.matcher.as_deref(), Some("Bash|mcp__.*"));
     let kinds: Vec<_> = pre.hooks.iter().map(|h| h.kind().unwrap()).collect();

@@ -68,7 +68,7 @@ mod walk;
 
 pub use enums::{
     BgIsolation, CacheTtl, CredentialMode, CustomizationKind, DialogTimeout, DiffTool, DisableFlag,
-    DisabledFlag, EditorMode, EffortLevel, FeedbackDrafts, HookEvent, InboundMode,
+    DisabledFlag, EditorMode, EffortLevel, FeedbackDrafts, HookEvent, HookOnFailure, InboundMode,
     KeybindingFlavor, LoginMethod, ModelMatch, NotifChannel, PermissionMode, Platform, Provider,
     Shell, SkillOverride, SourceKind, SourcesBehavior, SpellChecker, SpinnerVerbsMode,
     TeammateMode, Theme, TimeFormat, Tui, UpdatesChannel, ViewMode, VoiceMode, WorkflowSize,

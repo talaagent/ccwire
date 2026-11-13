@@ -112,7 +112,8 @@
             "asyncRewake": false,
             "shell": "bash",
             "if": "Bash(git *)",
-            "statusMessage": "checking"
+            "statusMessage": "checking",
+            "onFailure": "continue"
           },
           {
             "type": "prompt",
@@ -142,7 +143,8 @@
             ],
             "timeout": 5,
             "if": "Bash(git *)",
-            "statusMessage": "posting"
+            "statusMessage": "posting",
+            "onFailure": "block"
           },
           {
             "type": "mcp_tool",
@@ -279,6 +281,26 @@
       }
     ],
     "ElicitationResult": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PreModelSwitch": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "true"
+          }
+        ]
+      }
+    ],
+    "PostModelSwitch": [
       {
         "hooks": [
           {
