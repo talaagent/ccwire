@@ -1,6 +1,6 @@
 [package]
 name = "claude-code-settings"
-description = "Claude Code's settings.json as Rust types, with its layer merge"
+description = "Typed Claude Code settings.json: every key, lossless round-trips, and Claude Code's layer merge"
 version = "0.1.0"
 edition.workspace = true
 license.workspace = true
@@ -9,10 +9,10 @@ repository.workspace = true
 documentation = "https://docs.rs/claude-code-settings"
 authors.workspace = true
 rust-version.workspace = true
-keywords = ["claude", "claude-code", "settings", "serde"]
-categories = ["config", "api-bindings"]
-# The schema copy, its refresh script's output and the fixtures stay in the
-# repo; the tests that read them go with them.
+keywords = ["claude", "claude-code", "settings", "config", "serde"]
+categories = ["config", "development-tools"]
+# The schema copy and the fixtures stay in the repository; the tests that
+# read them go with them.
 exclude = ["schema", "tests"]
 
 [dependencies]

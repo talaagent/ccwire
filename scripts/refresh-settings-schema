@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Re-fetches Claude Code's settings JSON schema into claude-code-settings and
-# records the date. Then run the crate's tests: `schema` lists every key
-# the schema has that tests/fixtures/full.json (and so `Settings`) lacks.
+# records the date (schema/README.md, SCHEMA_FETCHED). Then run the crate's
+# tests: `schema` lists every property and enum value the schema has that
+# tests/fixtures/full.json (and so the types) lack. Note the README's
+# compatibility table too.
 set -euo pipefail
 
 url=https://json.schemastore.org/claude-code-settings.json
@@ -12,5 +14,7 @@ curl -sSfL "$url" -o "$tmp"
 python3 -c 'import json, sys; json.load(open(sys.argv[1]))' "$tmp"
 mv "$tmp" "$dir/claude-code-settings.json"
 trap - EXIT
-sed -i "s/^Fetched: .*/Fetched: $(date -u +%Y-%m-%d)/" "$dir/README.md"
+today=$(date -u +%Y-%m-%d)
+sed -i "s/^Fetched: .*/Fetched: $today/" "$dir/README.md"
+sed -i "s/^pub const SCHEMA_FETCHED: &str = \".*\";/pub const SCHEMA_FETCHED: \&str = \"$today\";/" "$dir/../src/lib.rs"
 git diff --stat -- "$dir"

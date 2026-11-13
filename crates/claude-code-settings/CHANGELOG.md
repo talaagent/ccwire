@@ -6,6 +6,11 @@ Changes are recorded here by release-plz when preparing a release.
 
 ### Added
 
-- `Settings`: every key of Claude Code's settings.json as Rust types, with
-  unknown keys kept, the layer merge Claude Code applies, and
-  `to_json_string` for `--settings`.
+- `Settings`: every key of Claude Code's settings.json (the published JSON
+  schema and the settings reference) as Rust types, each documented with
+  what Claude Code does with it, its values, default and scope.
+- Lossless round-trips: unknown keys, enum values, hook types and hook
+  events are kept and written back.
+- `Settings::merge` and `merge_values`: Claude Code's layer merge.
+- `Settings::to_json_string` for `--settings`, `to_json_string_pretty`,
+  `from_json_str`, `unknown_keys`.

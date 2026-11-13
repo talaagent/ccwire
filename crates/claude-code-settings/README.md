@@ -1,143 +1,205 @@
-# ccwire-settings
+# claude-code-settings
 
-[![crates.io](https://img.shields.io/crates/v/ccwire-settings.svg)](https://crates.io/crates/ccwire-settings)
-[![docs.rs](https://docs.rs/ccwire-settings/badge.svg)](https://docs.rs/ccwire-settings)
+[![crates.io](https://img.shields.io/crates/v/claude-code-settings.svg)](https://crates.io/crates/claude-code-settings)
+[![docs.rs](https://docs.rs/claude-code-settings/badge.svg)](https://docs.rs/claude-code-settings)
 [![CI](https://github.com/talaagent/ccwire/actions/workflows/ci.yml/badge.svg)](https://github.com/talaagent/ccwire/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/talaagent/ccwire/blob/main/LICENSE)
 
-[API reference](https://docs.rs/ccwire-settings) ·
-[Repository](https://github.com/talaagent/ccwire) ·
+[API reference](https://docs.rs/claude-code-settings) ·
+[Repository](https://github.com/talaagent/ccwire/tree/main/crates/claude-code-settings) ·
 [Issues](https://github.com/talaagent/ccwire/issues)
 
-Claude Code's settings.json as Rust types: build a `--settings` document
-instead of a hand-made JSON map, or read settings files, layer them the way
-Claude Code does, and write the result.
+[Claude Code](https://code.claude.com/docs)'s `settings.json` as Rust types.
 
-- `Settings`: every key Claude Code's settings accept, with the nested
-  objects typed (`permissions`, `hooks`, `sandbox`, marketplaces, plugin
-  configs, `modelSettings`, ...).
-- `Settings::to_json_string()`: the document for `claude --settings`.
-- `Settings::merge(higher)`: layer one document over another, as Claude
-  Code merges its settings sources. `merge_values` does the same for raw
-  `serde_json::Value`s.
-- `Settings::unknown_keys()`: the keys a document holds that this crate
-  doesn't model.
+Claude Code reads its configuration from layered JSON settings files and
+from the `--settings` command-line argument. This crate types every key
+those documents accept, so a program can build one and pass it to
+`claude --settings`, or read settings files, layer them the way Claude Code
+does, and write the result, without hand-built JSON.
 
-serde and serde_json only; no I/O.
+- `Settings` has a field for every key in Claude Code's published JSON
+  schema and its [settings reference](https://code.claude.com/docs/en/settings-reference),
+  with nested objects typed: permissions, hooks, the sandbox, marketplaces,
+  plugin configuration, model settings and the rest.
+- Each field's docs say what Claude Code does with the key, the values it
+  accepts, its default, where it may be set, and link to its entry in the
+  settings reference.
+- Keys, values, hook types and hook events the crate doesn't know are kept
+  and written back unchanged, so a file from a newer Claude Code
+  round-trips.
+- `Settings::merge` applies Claude Code's layer merge.
+- serde and serde_json only; no I/O.
 
 This crate is not affiliated with or endorsed by Anthropic.
 
 ## Install
 
 ```sh
-cargo add ccwire-settings
+cargo add claude-code-settings
 ```
 
-## Build a `--settings` document
+Rust 1.85 or newer.
+
+## Quick start
+
+Build a document and pass it to `claude --settings`. Every type is
+`#[non_exhaustive]`: start from `Default::default()` and set fields. Only
+what is set is written.
 
 ```rust
-use ccwire_settings::{Hook, HookEvent, HookMatcher, PermissionMode, Permissions, Settings};
+use claude_code_settings::{Hook, HookEvent, HookMatcher, PermissionMode, Permissions, Settings};
 
-let mut settings = Settings {
-    include_git_instructions: Some(false),
-    permissions: Some(Permissions {
-        allow: Some(vec!["Bash(git diff:*)".into()]),
-        default_mode: Some(PermissionMode::DontAsk),
-        ..Permissions::default()
-    }),
-    ..Settings::default()
-};
-settings.hooks.get_or_insert_default().insert(
-    HookEvent::PreToolUse,
-    vec![HookMatcher::matching("Bash", [Hook::command("my-guard")])],
-);
-let arg = settings.to_json_string();
-// Command::new("claude").args(["--settings", &arg, ...])
+fn main() -> Result<(), serde_json::Error> {
+    let mut permissions = Permissions::default();
+    permissions.allow = Some(vec!["Bash(git diff *)".into(), "Read".into()]);
+    permissions.deny = Some(vec!["Bash(rm *)".into()]);
+    permissions.default_mode = Some(PermissionMode::DontAsk);
+
+    let mut settings = Settings::default();
+    settings.permissions = Some(permissions);
+    settings.hooks.get_or_insert_default().insert(
+        HookEvent::PreToolUse,
+        vec![HookMatcher::matching("Bash", [Hook::command("./scripts/check-command")])],
+    );
+
+    let arg = settings.to_json_string()?;
+    // std::process::Command::new("claude").args(["--settings", &arg, "-p", "..."]);
+    assert!(arg.contains(r#""defaultMode":"dontAsk""#));
+    Ok(())
+}
 ```
 
-## Layer settings files
+Read a settings file, change it, and write it back. Unknown keys and values
+survive:
 
 ```rust
-use ccwire_settings::Settings;
+use claude_code_settings::Settings;
 
-let user = r#"{"permissions":{"allow":["Read"]},"model":"opus"}"#;
-let project = r#"{"permissions":{"deny":["Bash(rm:*)"]},"model":"sonnet"}"#;
-let mut merged = Settings::from_json_str(user).expect("valid settings");
-merged.merge(Settings::from_json_str(project).expect("valid settings"));
-assert_eq!(merged.model.as_deref(), Some("sonnet"));
-let perms = merged.permissions.unwrap();
-assert_eq!(perms.allow.unwrap(), ["Read"]);
-assert_eq!(perms.deny.unwrap(), ["Bash(rm:*)"]);
+fn main() -> Result<(), serde_json::Error> {
+    let file = r#"{"model": "opus", "aKeyFromANewerVersion": {"enabled": true}}"#;
+    let mut settings = Settings::from_json_str(file)?;
+    assert_eq!(settings.unknown_keys(), ["aKeyFromANewerVersion"]);
+
+    settings.model = Some("sonnet".into());
+    let written = settings.to_json_string_pretty()?;
+    assert!(written.contains("aKeyFromANewerVersion"));
+    Ok(())
+}
 ```
 
-The merge follows Claude Code's (checked against 2.1.322): objects merge
-key by key, arrays concatenate (lower layer first, repeated strings
-dropped), and anything else is the higher layer's. `fallbackModel` and
-`modelPicker` are taken whole, and `extraKnownMarketplaces` per
-marketplace. It doesn't model which sources Claude Code reads a key from
-(managed-only keys, keys project settings can't set), and a `deny` rule
-beats an `allow` rule whatever the layer order.
+## How settings layer
 
-## Sources and checks
+Claude Code reads settings from several sources. Highest precedence first:
 
-The keys come from two sources, both checked in:
+1. **Managed settings**: what an organization deploys. Nothing below
+   overrides a managed key.
+2. **Command line**: `--settings <file-or-json>`, for one session.
+3. **Local project settings**: `.claude/settings.local.json`.
+4. **Shared project settings**: `.claude/settings.json`.
+5. **User settings**: `~/.claude/settings.json`.
 
-- the published JSON schema, <https://json.schemastore.org/claude-code-settings.json>,
-  copied to `schema/` with its fetch date. `scripts/refresh-settings-schema`
-  re-fetches it, and the `schema` test lists every property (top level and
-  nested) and every enum value it has that the types don't;
-- Claude Code's settings reference, <https://code.claude.com/docs/en/settings-reference>,
-  for the keys the schema doesn't have yet (`autoCompactWindow`,
-  `modelSettings`, `modelPicker`, `allowedProviders`, ...).
+It merges them instead of picking one:
 
-`tests/fixtures/full.json` sets every one of them. The tests parse it with
-no unknown key left over and write it back unchanged; an opt-in test
-(`tests/cli.rs`, also run weekly against the newest CLI) hands it to a real
-`claude` through `--settings` and checks nothing is rejected. With
-Claude Code 2.1.322 every key loads; the only ones skipped are the three a
-`--settings` document may not set (`managedMcpServers`, `deniedModels`,
-`availableModelsMatch`: managed settings only).
+- a scalar (string, number, Boolean) comes from the highest source that
+  sets it;
+- objects merge key by key (`env`, `permissions`, `sandbox`, ...);
+- lists concatenate, so `permissions.allow`/`ask`/`deny` and each hook
+  event's matcher groups add up across sources; `fallbackModel` and
+  `modelPicker` are taken whole from the highest source.
 
-## Decisions
+A `deny` rule from any source beats an `allow` rule from any other: Claude
+Code evaluates `deny`, then `ask`, then `allow`. Some keys are honored only
+from some sources (managed-only keys, keys a project can't set); each
+field's **Scope** line says which, and the merge doesn't enforce it. Claude
+Code watches its settings files and reloads most keys in a running session
+when a file changes; a few, such as `model`, are read only at start.
 
-- **Every key is an `Option`**, skipped when `None`; nothing has a default
-  value of its own, so a document says only what it sets. One key keeps
-  `null` apart from absent: `teammateDefaultModel` (`Option<Option<String>>`),
-  where `null` means "follow the lead's model".
-- **Unknown keys round-trip.** Every object has a `#[serde(flatten)] extra`
-  map, enums have `Other(String)`, hooks of an unknown `type` are
-  `Hook::Other` with the whole object, and `hooks` is a map keyed by
-  `HookEvent` (whose `Other` holds a new event). A host file written for a
-  newer Claude Code survives a parse, a merge and a write.
-- **A value of the wrong type is an error**, not dropped: Claude Code
-  rejects the same document.
-- **Structs aren't `#[non_exhaustive]`**, so they can be built with
-  `..Default::default()`. A new key is a new field: a minor release while
-  the crate is 0.x. Enums are `#[non_exhaustive]`.
-- **Numbers** the schema calls `number` are `f64` (a hook's `timeout`,
-  `statusLine.padding`, rates); `integer`s are `u64` (`u16` for ports).
-  An `f64` field writes `10` back as `10.0`, the same JSON number.
-- **Marketplace and plugin sources are one struct**, `Source`: `source`
-  names the kind (`SourceKind`) and the other fields are those the kind
-  takes. The schema has three slightly different unions of nine kinds;
-  one struct covers them all and still parses a kind added later.
-- **Untyped on purpose:**
-  - `env` is a `BTreeMap<String, String>`: its keys are environment
-    variables (the schema lists ~400), not settings.
-  - `managedMcpServers` entries are JSON objects: MCP server configs, which
-    the schema leaves open; the key is managed-only.
-  - `mcp_tool` hooks' `input` is a JSON object: the tool's arguments.
-- **Left in `extra`:** keys the CLI accepts but neither the schema nor the
-  settings reference names (internal or unreleased ones, such as
-  `autoDreamEnabled` or `buildGate`), and the settings reference's "Global
-  config" keys (`copyOnSelect`, `defaultToAgentsView`, ...), which live in
-  `~/.claude.json`, not settings.json. Removed keys that the schema still
-  lists (`teammateDefaultModel`, `permissionExplainerEnabled`) or that the
-  docs still document (`taskOutputMaxChars`) are typed.
-- **Enum values the schema has and Claude Code 2.1.322 rejects** are kept
-  (`PermissionMode::Delegate`, `Manual`), and values it accepts beyond the
-  schema are added (`UpdatesChannel::Rc`, `EffortLevel::Max` for caps).
+`Settings::merge` applies one layer over another. Call it on the lowest
+layer with each higher one in turn:
+
+```rust
+use claude_code_settings::Settings;
+
+fn main() -> Result<(), serde_json::Error> {
+    let user = Settings::from_json_str(r#"{"model": "opus", "permissions": {"allow": ["Read"]}}"#)?;
+    let project = Settings::from_json_str(
+        r#"{"model": "sonnet", "permissions": {"allow": ["Bash(cargo test *)"]}}"#,
+    )?;
+
+    let mut effective = user;
+    effective.merge(project)?;
+    assert_eq!(effective.model.as_deref(), Some("sonnet"));
+    let allow = effective.permissions.unwrap_or_default().allow.unwrap_or_default();
+    assert_eq!(allow, ["Read", "Bash(cargo test *)"]);
+    Ok(())
+}
+```
+
+`merge_values` does the same on `serde_json::Value`s.
+
+## Compatibility
+
+| | |
+| --- | --- |
+| Claude Code | 2.1.322 (`CLAUDE_CODE_VERSION`) |
+| JSON schema | fetched 2026-11-13 (`SCHEMA_FETCHED`) |
+| Rust | 1.85 or newer |
+
+The types follow two sources: the published JSON schema
+(<https://json.schemastore.org/claude-code-settings.json>, a copy is in
+`schema/` in the repository) and Claude Code's settings reference, for the
+keys the schema doesn't list yet. A document that sets every key is
+checked against the Claude Code release above: it loads, and the only keys
+skipped are the ones a `--settings` document may not set (managed-only
+keys).
+
+Releases:
+
+- New keys and values are additive: the types are `#[non_exhaustive]`, so
+  they ship as patch releases. An older release of this crate keeps a newer
+  key in `extra`, so nothing is lost meanwhile.
+- A change that breaks the API (a key's type changes, a key is removed)
+  bumps the minor version while the crate is 0.x.
+- The changelog is `CHANGELOG.md`; release-plz writes it and checks semver
+  with cargo-semver-checks.
+
+## Keeping up with Claude Code
+
+In the repository:
+
+- `scripts/refresh-settings-schema` fetches the schema again and records
+  the date.
+- The `schema` test (`cargo test -p claude-code-settings`) then fails,
+  listing every property by JSON path (such as
+  `sandbox.network.newOption`, or `$defs/hookCommand.newField` for a hook
+  handler field) and every enum value the schema has that the types and
+  `tests/fixtures/full.json` don't. Add each to its type and to the fixture.
+- `tests/cli.rs` hands the fixture to a real `claude --settings`, offline,
+  and fails on any key it rejects:
+  `CLAUDE_BIN=$(command -v claude) cargo test -p claude-code-settings --test cli -- --ignored`.
+  A weekly workflow runs it against the newest Claude Code.
+
+## Design notes
+
+- Every key is an `Option`, written only when set. One key keeps `null`
+  apart from absent: `teammateDefaultModel`, where `null` follows the lead's
+  model.
+- A value of the wrong type is an error, not dropped: Claude Code rejects
+  the same document.
+- `env` is a plain map: its keys are environment variables, not settings.
+  `managedMcpServers` entries and an `mcp_tool` hook's `input` stay JSON
+  objects, as the schema leaves them open.
+- Marketplace and plugin sources are one struct, `Source`: `source` names
+  the kind and the other fields are those the kind takes, so a new kind
+  still parses.
+- Numbers the schema calls `number` are `f64`, so `10` is written back as
+  `10.0`, the same JSON number.
+- Keys Claude Code accepts that neither the schema nor the settings
+  reference names, and the settings reference's "global config" keys,
+  which belong in `~/.claude.json` rather than `settings.json`, are left in
+  `extra`.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (`LICENSE`).
+Licensed under the Apache License, Version 2.0
+([LICENSE](https://github.com/talaagent/ccwire/blob/main/LICENSE)).

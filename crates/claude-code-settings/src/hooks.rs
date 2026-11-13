@@ -11,22 +11,55 @@ use crate::Extra;
 use crate::enums::{HookEvent, HookOnFailure, Shell};
 use crate::walk::{Unknown, join, walk};
 
-/// `hooks`: the matcher groups of each event, in the order they run.
+/// `hooks`: for each [`HookEvent`], its matcher groups.
+///
+/// Claude Code runs every group whose `matcher` matches the event, and the
+/// hooks of all matching groups in parallel. Across settings layers the
+/// groups of an event add up (see [`merge_values`](crate::merge_values));
+/// an identical handler defined in two files runs once. An event name
+/// Claude Code doesn't know is skipped with a warning; this crate keeps it as
+/// [`HookEvent::Other`].
+///
+/// - **Default**: unset, so no hooks run.
+/// - **Scope**: any settings file. With `allowManagedHooksOnly` set in managed
+///   settings, only managed hooks run; `disableAllHooks` turns all of them off.
+///
+/// Docs: [`hooks`](https://code.claude.com/docs/en/settings-reference#hooks),
+/// [hooks reference](https://code.claude.com/docs/en/hooks).
 pub type Hooks = BTreeMap<HookEvent, Vec<HookMatcher>>;
 
 /// A matcher group: the hooks to run when `matcher` matches the event.
+///
+/// Docs: [matcher patterns](https://code.claude.com/docs/en/hooks#matcher-patterns).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct HookMatcher {
-    /// The pattern to match the event's context (a tool name for tool
-    /// events), case-sensitive; unset matches everything.
+    /// What the group matches, case-sensitive. Each event matches on its own
+    /// field: the tool name for tool events, the agent type for subagent
+    /// events, the source for `SessionStart`, and so on.
+    ///
+    /// - **Values**: `"*"`, `""` or unset matches everything; a string of only
+    ///   letters, digits, `_`, `-`, spaces, `,` and `|` is an exact name or a
+    ///   list of names (`Edit|Write`); anything else is an unanchored
+    ///   JavaScript regular expression (`mcp__memory__.*`).
+    /// - **Default**: unset: every occurrence of the event.
+    ///
+    /// Docs: [`matcher`](https://code.claude.com/docs/en/hooks#matcher-patterns).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub matcher: Option<String>,
-    /// The hooks to run.
+    /// The handlers to run, in parallel, when the group matches.
+    ///
+    /// - **Values**: [`Hook`]s: `command`, `http`, `mcp_tool`, `prompt` or
+    ///   `agent`.
+    /// - **Default**: none: Claude Code requires the key, so this crate always
+    ///   writes it (an empty list when unset).
+    ///
+    /// Docs: [hook handler fields](https://code.claude.com/docs/en/hooks#hook-handler-fields).
     #[serde(default)]
     pub hooks: Vec<Hook>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -143,39 +176,96 @@ impl Unknown for Hook {
 }
 
 /// A `command` hook.
+///
+/// Docs: [settings reference](https://code.claude.com/docs/en/hooks#command-hook-fields).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct CommandHook {
-    /// The shell command (or, with `args`, the program).
+    /// Shell command to execute. With `args`, the executable to spawn directly. See [Exec form
+    /// and shell form](https://code.claude.com/docs/en/hooks#exec-form-and-shell-form).
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`command`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
-    /// The program's arguments: run without a shell.
+    /// Argument list. When present, `command` is resolved as an executable and spawned directly
+    /// with `args` as the argument vector, with no shell involved. See [Exec form and shell
+    /// form](https://code.claude.com/docs/en/hooks#exec-form-and-shell-form).
+    ///
+    /// - **Values**: array of strings
+    ///
+    /// Docs: [`args`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub args: Option<Vec<String>>,
-    /// Timeout in seconds (Claude Code's default is 600, 30 on
-    /// `UserPromptSubmit`, 10 on `MessageDisplay`).
+    /// Seconds before canceling. Claude Code doesn't enforce it on a command hook you run with
+    /// [`async: true`](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    /// Defaults: 600 for `command`, `http`, and `mcp_tool`; 30 for `prompt`; 60 for `agent`.
+    ///
+    /// - **Values**: a number
+    ///
+    /// Docs: [`timeout`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<f64>,
-    /// Run in the background without blocking.
+    /// If `true`, runs in the background without blocking. See [Run hooks in the
+    /// background](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    ///
+    /// - **Values**: Boolean
+    ///
+    /// Docs: [`async`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(rename = "async", skip_serializing_if = "Option::is_none")]
     pub run_async: Option<bool>,
-    /// Run in the background and wake the model when it exits with code 2.
+    /// If `true`, runs in the background and wakes Claude on exit code 2. The hook's stderr, or
+    /// stdout if stderr is empty, is shown to Claude as a [system
+    /// reminder](https://code.claude.com/docs/en/glossary#system-reminder) so it can react to a
+    /// long-running background failure.
+    ///
+    /// - **Values**: Boolean
+    ///
+    /// Docs: [`asyncRewake`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub async_rewake: Option<bool>,
-    /// The shell to run `command` in.
+    /// Shell to use for this hook. Accepts `"bash"` or `"powershell"`. Defaults to `"bash"`, or
+    /// to `"powershell"` on Windows when Git Bash isn't installed.
+    ///
+    /// - **Values**: `"bash"`, `"powershell"`
+    ///
+    /// Docs: [`shell`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shell: Option<Shell>,
-    /// A permission rule that filters tool events (`Bash(git *)`).
+    /// [Permission rule
+    /// syntax](https://code.claude.com/docs/en/permissions#permission-rule-syntax) to filter
+    /// when this hook runs, such as `"Bash(git *)"` or `"Edit(*.ts)"`. The hook command only
+    /// runs if the tool call matches the pattern. See the [Bash matching
+    /// table](https://code.claude.com/docs/en/hooks#bash-if-matching) for how Bash patterns
+    /// evaluate against subcommands, `$()`, and backticks.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`if`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
     pub condition: Option<String>,
-    /// The spinner message while it runs.
+    /// Custom spinner message displayed while the hook runs.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`statusMessage`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
-    /// Whether the action goes ahead when the hook fails.
+    /// Whether the action that triggered the hook goes ahead when the hook fails: `"continue"`
+    /// or `"block"`. See [Block the action when a hook
+    /// fails](https://code.claude.com/docs/en/hooks#block-the-action-when-a-hook-fails) for
+    /// `"block"` and for leaving the field unset. Requires Claude Code v2.1.295 or later.
+    ///
+    /// - **Values**: `"continue"` or `"block"`. Requires Claude Code v2.1.295 or later
+    /// - **Default**: unset: the action goes ahead on most events
+    ///
+    /// Docs: [`onFailure`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_failure: Option<HookOnFailure>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }
@@ -198,114 +288,269 @@ impl CommandHook {
 }
 
 /// A `prompt` hook.
+///
+/// Docs: [settings reference](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct PromptHook {
-    /// The prompt; `$ARGUMENTS` is the hook input JSON.
+    /// Prompt text to send to the model. Use `$ARGUMENTS` as a placeholder for the hook input
+    /// JSON. Escape with a backslash to include literal text: `\$1.00` renders as `$1.00`.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`prompt`](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<String>,
-    /// The model (a fast one by default).
+    /// Model to use for evaluation. Defaults to the model Claude Code uses for [background
+    /// functionality](https://code.claude.com/docs/en/model-config#environment-variables).
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`model`](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
-    /// Timeout in seconds (default 30).
+    /// Seconds before canceling. Claude Code doesn't enforce it on a command hook you run with
+    /// [`async: true`](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    /// Defaults: 600 for `command`, `http`, and `mcp_tool`; 30 for `prompt`; 60 for `agent`.
+    ///
+    /// - **Values**: a number
+    ///
+    /// Docs: [`timeout`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<f64>,
-    /// A permission rule that filters tool events.
+    /// [Permission rule
+    /// syntax](https://code.claude.com/docs/en/permissions#permission-rule-syntax) to filter
+    /// when this hook runs, such as `"Bash(git *)"` or `"Edit(*.ts)"`. The hook command only
+    /// runs if the tool call matches the pattern. See the [Bash matching
+    /// table](https://code.claude.com/docs/en/hooks#bash-if-matching) for how Bash patterns
+    /// evaluate against subcommands, `$()`, and backticks.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`if`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
     pub condition: Option<String>,
-    /// The spinner message while it runs.
+    /// Custom spinner message displayed while the hook runs.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`statusMessage`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
-    /// On `ok: false`, feed the reason back and continue the turn.
+    /// When the prompt returns ok: false, feed the reason back to Claude and continue the turn
+    /// instead of stopping. Implemented as continue: true on the resulting decision: "block".
+    ///
+    /// - **Values**: Boolean
+    /// - **Default**: `false`
+    ///
+    /// Docs: not in the settings reference; listed in the
+    /// [JSON schema](https://json.schemastore.org/claude-code-settings.json).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub continue_on_block: Option<bool>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }
 
 /// An `agent` hook.
+///
+/// Docs: [settings reference](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct AgentHook {
-    /// What to verify; `$ARGUMENTS` is the hook input JSON.
+    /// Prompt text to send to the model. Use `$ARGUMENTS` as a placeholder for the hook input
+    /// JSON. Escape with a backslash to include literal text: `\$1.00` renders as `$1.00`.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`prompt`](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<String>,
-    /// The model (a fast one by default).
+    /// Model to use for evaluation. Defaults to the model Claude Code uses for [background
+    /// functionality](https://code.claude.com/docs/en/model-config#environment-variables).
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`model`](https://code.claude.com/docs/en/hooks#prompt-and-agent-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
-    /// Timeout in seconds (default 60).
+    /// Seconds before canceling. Claude Code doesn't enforce it on a command hook you run with
+    /// [`async: true`](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    /// Defaults: 600 for `command`, `http`, and `mcp_tool`; 30 for `prompt`; 60 for `agent`.
+    ///
+    /// - **Values**: a number
+    ///
+    /// Docs: [`timeout`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<f64>,
-    /// A permission rule that filters tool events.
+    /// [Permission rule
+    /// syntax](https://code.claude.com/docs/en/permissions#permission-rule-syntax) to filter
+    /// when this hook runs, such as `"Bash(git *)"` or `"Edit(*.ts)"`. The hook command only
+    /// runs if the tool call matches the pattern. See the [Bash matching
+    /// table](https://code.claude.com/docs/en/hooks#bash-if-matching) for how Bash patterns
+    /// evaluate against subcommands, `$()`, and backticks.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`if`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
     pub condition: Option<String>,
-    /// The spinner message while it runs.
+    /// Custom spinner message displayed while the hook runs.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`statusMessage`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }
 
 /// An `http` hook.
+///
+/// Docs: [settings reference](https://code.claude.com/docs/en/hooks#http-hook-fields).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct HttpHook {
-    /// The URL to `POST` the hook input to.
+    /// URL to send the POST request to.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`url`](https://code.claude.com/docs/en/hooks#http-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
-    /// Request headers; values interpolate `$VAR` from `allowedEnvVars`.
+    /// Additional HTTP headers as key-value pairs. Values support environment variable
+    /// interpolation using `$VAR_NAME` or `${VAR_NAME}` syntax. Only variables listed in
+    /// `allowedEnvVars` are resolved.
+    ///
+    /// - **Values**: object
+    ///
+    /// Docs: [`headers`](https://code.claude.com/docs/en/hooks#http-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub headers: Option<BTreeMap<String, String>>,
-    /// The environment variables `headers` may interpolate.
+    /// List of environment variable names that may be interpolated into header values.
+    /// References to unlisted variables are replaced with empty strings. Required for any env
+    /// var interpolation to work.
+    ///
+    /// - **Values**: array of strings
+    ///
+    /// Docs: [`allowedEnvVars`](https://code.claude.com/docs/en/hooks#http-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_env_vars: Option<Vec<String>>,
-    /// Timeout in seconds.
+    /// Seconds before canceling. Claude Code doesn't enforce it on a command hook you run with
+    /// [`async: true`](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    /// Defaults: 600 for `command`, `http`, and `mcp_tool`; 30 for `prompt`; 60 for `agent`.
+    ///
+    /// - **Values**: a number
+    ///
+    /// Docs: [`timeout`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<f64>,
-    /// A permission rule that filters tool events.
+    /// [Permission rule
+    /// syntax](https://code.claude.com/docs/en/permissions#permission-rule-syntax) to filter
+    /// when this hook runs, such as `"Bash(git *)"` or `"Edit(*.ts)"`. The hook command only
+    /// runs if the tool call matches the pattern. See the [Bash matching
+    /// table](https://code.claude.com/docs/en/hooks#bash-if-matching) for how Bash patterns
+    /// evaluate against subcommands, `$()`, and backticks.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`if`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
     pub condition: Option<String>,
-    /// The spinner message while it runs.
+    /// Custom spinner message displayed while the hook runs.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`statusMessage`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
-    /// Whether the action goes ahead when the hook fails.
+    /// What happens to the action when the hook fails: `"continue"`, the default, or `"block"`.
+    /// See [Block the action when a hook
+    /// fails](https://code.claude.com/docs/en/hooks#block-the-action-when-a-hook-fails).
+    /// Requires Claude Code v2.1.295 or later.
+    ///
+    /// - **Values**: `"continue"` or `"block"`. Requires Claude Code v2.1.295 or later
+    /// - **Default**: `"continue"`
+    ///
+    /// Docs: [`onFailure`](https://code.claude.com/docs/en/hooks#http-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_failure: Option<HookOnFailure>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }
 
 /// An `mcp_tool` hook.
+///
+/// Docs: [settings reference](https://code.claude.com/docs/en/hooks#mcp-tool-hook-fields).
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[non_exhaustive]
 pub struct McpToolHook {
-    /// The MCP server (already connected).
+    /// Name of a configured MCP server. For a [plugin-bundled
+    /// server](https://code.claude.com/docs/en/mcp#plugin-provided-mcp-servers), this is the
+    /// scoped name `plugin:<plugin-name>:<server-name>`, such as `plugin:my-plugin:db`, not the
+    /// bare server key.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`server`](https://code.claude.com/docs/en/hooks#mcp-tool-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server: Option<String>,
-    /// The tool to call.
+    /// Name of the tool to call on that server.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`tool`](https://code.claude.com/docs/en/hooks#mcp-tool-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool: Option<String>,
-    /// The tool's arguments; strings substitute `${path}` from the hook
-    /// input.
+    /// Arguments passed to the tool. String values support `${path}` substitution from the
+    /// hook's [JSON input](https://code.claude.com/docs/en/hooks#hook-input-and-output), such
+    /// as `"${tool_input.file_path}"`.
+    ///
+    /// - **Values**: object
+    ///
+    /// Docs: [`input`](https://code.claude.com/docs/en/hooks#mcp-tool-hook-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub input: Option<Map<String, Value>>,
-    /// Timeout in seconds.
+    /// Seconds before canceling. Claude Code doesn't enforce it on a command hook you run with
+    /// [`async: true`](https://code.claude.com/docs/en/hooks#run-hooks-in-the-background).
+    /// Defaults: 600 for `command`, `http`, and `mcp_tool`; 30 for `prompt`; 60 for `agent`.
+    ///
+    /// - **Values**: a number
+    ///
+    /// Docs: [`timeout`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub timeout: Option<f64>,
-    /// A permission rule that filters tool events.
+    /// [Permission rule
+    /// syntax](https://code.claude.com/docs/en/permissions#permission-rule-syntax) to filter
+    /// when this hook runs, such as `"Bash(git *)"` or `"Edit(*.ts)"`. The hook command only
+    /// runs if the tool call matches the pattern. See the [Bash matching
+    /// table](https://code.claude.com/docs/en/hooks#bash-if-matching) for how Bash patterns
+    /// evaluate against subcommands, `$()`, and backticks.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`if`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(rename = "if", skip_serializing_if = "Option::is_none")]
     pub condition: Option<String>,
-    /// The spinner message while it runs.
+    /// Custom spinner message displayed while the hook runs.
+    ///
+    /// - **Values**: string
+    ///
+    /// Docs: [`statusMessage`](https://code.claude.com/docs/en/hooks#common-fields).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status_message: Option<String>,
-    /// Keys this crate doesn't model.
+    /// Keys Claude Code accepts here that this crate doesn't model (newer or
+    /// undocumented ones), kept as written so the document round-trips.
     #[serde(flatten)]
     pub extra: Extra,
 }

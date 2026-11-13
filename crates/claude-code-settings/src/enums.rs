@@ -95,22 +95,33 @@ macro_rules! string_enum {
 
 string_enum! {
     /// `permissions.defaultMode`: the permission mode a session starts in.
+    ///
+    /// Docs: [`permissions.defaultMode`](https://code.claude.com/docs/en/settings-reference#permissions-defaultmode).
     pub enum PermissionMode {
-        /// Ask before each tool that needs permission.
+        /// Claude Code runs only reads without asking.
         Default = "default",
-        /// Accept file edits without asking.
+        /// Claude Code also runs file edits and common filesystem commands such as `mkdir` and
+        /// `mv` without asking.
         AcceptEdits = "acceptEdits",
-        /// Plan only: read, don't change anything.
+        /// Claude Code reads and plans but blocks edits until you approve a plan.
         Plan = "plan",
-        /// Deny whatever isn't allowed instead of asking.
+        /// Claude Code auto-denies every call that would otherwise prompt, though a
+        /// [mod](https://code.claude.com/docs/en/plugins/mods/overview) you installed can still
+        /// approve [some of those
+        /// calls](https://code.claude.com/docs/en/permissions#precedence-among-rules-hooks-and-mods).
+        /// File reads inside your working directories, other actions that need no approval, and
+        /// pre-approved tools still run, apart from reads from [network
+        /// paths](https://code.claude.com/docs/en/permissions#network-paths).
         DontAsk = "dontAsk",
-        /// Skip every permission check.
+        /// Claude Code runs everything without asking.
         BypassPermissions = "bypassPermissions",
-        /// Let the auto-mode classifier decide.
+        /// Claude Code runs without routine prompts; before actions such as shell commands and
+        /// network requests run, a background classifier checks that they align with your
+        /// request.
         Auto = "auto",
         /// In the schema; Claude Code 2.1.322 rejects it.
         Delegate = "delegate",
-        /// In the schema; Claude Code 2.1.322 rejects it.
+        /// An alias for `"default"`.
         Manual = "manual",
     }
 }
@@ -119,6 +130,8 @@ string_enum! {
     /// The one value of the `disable*` keys that turn a feature off
     /// (`permissions.disableBypassPermissionsMode`, `disableAutoMode`,
     /// `disableDeepLinkRegistration`).
+    ///
+    /// Docs: [`permissions.disableBypassPermissionsMode`](https://code.claude.com/docs/en/settings-reference#permissions-disablebypasspermissionsmode).
     pub enum DisableFlag {
         /// Turn it off.
         Disable = "disable",
@@ -127,6 +140,8 @@ string_enum! {
 
 string_enum! {
     /// `browserExternalPageTools`.
+    ///
+    /// Docs: [`browserExternalPageTools`](https://code.claude.com/docs/en/settings-reference#browserexternalpagetools).
     pub enum DisabledFlag {
         /// Turn the tools off.
         Disabled = "disabled",
@@ -135,10 +150,13 @@ string_enum! {
 
 string_enum! {
     /// `autoUpdatesChannel`.
+    ///
+    /// Docs: [`autoUpdatesChannel`](https://code.claude.com/docs/en/settings-reference#autoupdateschannel).
     pub enum UpdatesChannel {
-        /// About a week old, skipping releases with major regressions.
+        /// Updates follow a version that is typically about one week old and skips releases
+        /// with major regressions.
         Stable = "stable",
-        /// The most recent release.
+        /// Updates follow the most recent release.
         Latest = "latest",
         /// Release candidates (accepted by Claude Code 2.1.322, not in the
         /// schema).
@@ -149,14 +167,17 @@ string_enum! {
 string_enum! {
     /// `effortLevel`, `maxEffortLevel` and `modelSettings.*.effortLevel`.
     /// `max` is valid only as a cap.
+    ///
+    /// Docs: [`effortLevel`](https://code.claude.com/docs/en/settings-reference#effortlevel).
     pub enum EffortLevel {
-        /// Low effort.
+        /// The least reasoning, for short, scoped, latency-sensitive tasks that aren't
+        /// intelligence-sensitive.
         Low = "low",
-        /// Medium effort.
+        /// Reduces token usage for cost-sensitive work that can trade off some intelligence.
         Medium = "medium",
-        /// High effort.
+        /// Balances token usage and intelligence.
         High = "high",
-        /// Extra-high effort.
+        /// Deeper reasoning at higher token spend.
         Xhigh = "xhigh",
         /// No cap (`maxEffortLevel` only).
         Max = "max",
@@ -165,124 +186,151 @@ string_enum! {
 
 string_enum! {
     /// `forceLoginMethod`.
+    ///
+    /// Docs: [`forceLoginMethod`](https://code.claude.com/docs/en/settings-reference#forceloginmethod).
     pub enum LoginMethod {
-        /// A claude.ai subscription.
+        /// Claude.ai sign-in.
         ClaudeAi = "claudeai",
-        /// A Console (API billing) account.
+        /// Claude Console sign-in.
         Console = "console",
-        /// A Cloud gateway.
+        /// Claude Code sends people to a cloud gateway instead of a first-party login.
         Gateway = "gateway",
     }
 }
 
 string_enum! {
     /// `teammateMode`: how agent-team teammates are shown.
+    ///
+    /// Docs: [`teammateMode`](https://code.claude.com/docs/en/settings-reference#teammatemode).
     pub enum TeammateMode {
-        /// Pick one.
+        /// Split panes when you're running inside tmux, or inside iTerm2 with `it2` on your
+        /// `PATH` or tmux installed; in-process otherwise.
         Auto = "auto",
-        /// In this process.
+        /// Teammates run inside your main terminal pane.
         InProcess = "in-process",
-        /// tmux panes.
+        /// Split panes using tmux or iTerm2, detected from your terminal.
         Tmux = "tmux",
-        /// iTerm2 panes.
+        /// ITerm2 native split panes through the `it2` CLI.
         Iterm2 = "iterm2",
     }
 }
 
 string_enum! {
     /// `parentSettingsBehavior` and `managedSourcesBehavior`.
+    ///
+    /// Docs: [`parentSettingsBehavior`](https://code.claude.com/docs/en/settings-reference#parentsettingsbehavior).
     pub enum SourcesBehavior {
-        /// The highest source that sets a key supplies it.
+        /// Claude Code drops the host-supplied settings when an admin-deployed managed tier is
+        /// present.
         FirstWins = "first-wins",
-        /// Every source contributes its keys.
+        /// Claude Code applies the host-supplied settings under the admin tier through a
+        /// restrictive-only filter.
         Merge = "merge",
     }
 }
 
 string_enum! {
     /// `defaultShell` and a command hook's `shell`.
+    ///
+    /// Docs: [`defaultShell`](https://code.claude.com/docs/en/settings-reference#defaultshell).
     pub enum Shell {
-        /// bash.
+        /// Claude Code runs your `!` commands in Bash.
         Bash = "bash",
-        /// PowerShell.
+        /// Claude Code runs your `!` commands in PowerShell.
         Powershell = "powershell",
     }
 }
 
 string_enum! {
     /// `tui`.
+    ///
+    /// Docs: [`tui`](https://code.claude.com/docs/en/settings-reference#tui).
     pub enum Tui {
-        /// The fullscreen renderer.
+        /// The flicker-free alt-screen renderer with virtualized scrollback.
         Fullscreen = "fullscreen",
-        /// The default renderer.
+        /// The classic main-screen renderer.
         Default = "default",
     }
 }
 
 string_enum! {
     /// `viewMode`.
+    ///
+    /// Docs: [`viewMode`](https://code.claude.com/docs/en/settings-reference#viewmode).
     pub enum ViewMode {
-        /// The default view.
+        /// The normal transcript with truncated tool output.
         Default = "default",
-        /// Verbose output.
+        /// The transcript with full tool output.
         Verbose = "verbose",
-        /// Focus view.
+        /// Only your last prompt, a one-line summary of tool calls with edit diffstats, and the
+        /// final response. Focus view needs the [fullscreen
+        /// renderer](https://code.claude.com/docs/en/settings-reference#tui).
         Focus = "focus",
     }
 }
 
 string_enum! {
     /// `editorMode`.
+    ///
+    /// Docs: [`editorMode`](https://code.claude.com/docs/en/settings-reference#editormode).
     pub enum EditorMode {
-        /// Normal editing.
+        /// Standard key bindings in the prompt input.
         Normal = "normal",
-        /// Vim keys.
+        /// Vim-style editing with NORMAL, INSERT, and VISUAL modes.
         Vim = "vim",
     }
 }
 
 string_enum! {
     /// `preferredNotifChannel`.
+    ///
+    /// Docs: [`preferredNotifChannel`](https://code.claude.com/docs/en/settings-reference#preferrednotifchannel).
     pub enum NotifChannel {
-        /// Pick one.
+        /// Claude Code sends a desktop notification when it detects iTerm2, Ghostty, or Kitty,
+        /// rings the bell in Terminal.app only when its audible bell is off, and does nothing
+        /// elsewhere.
         Auto = "auto",
-        /// The terminal bell.
+        /// Claude Code rings the bell character in any terminal.
         TerminalBell = "terminal_bell",
-        /// iTerm2 notifications.
+        /// Claude Code sends an iTerm2 desktop notification.
         Iterm2 = "iterm2",
-        /// iTerm2 notifications and the bell.
+        /// Claude Code sends an iTerm2 desktop notification and rings the bell.
         Iterm2WithBell = "iterm2_with_bell",
-        /// kitty notifications.
+        /// Claude Code sends a Kitty desktop notification.
         Kitty = "kitty",
-        /// Ghostty notifications.
+        /// Claude Code sends a Ghostty desktop notification.
         Ghostty = "ghostty",
-        /// No notifications.
+        /// Claude Code sends no notification.
         NotificationsDisabled = "notifications_disabled",
     }
 }
 
 string_enum! {
     /// `theme`. A custom theme's name is `Other`.
+    ///
+    /// Docs: [`theme`](https://code.claude.com/docs/en/settings-reference#theme).
     pub enum Theme {
-        /// Follow the terminal.
+        /// Matches your terminal's light or dark background.
         Auto = "auto",
-        /// Dark.
+        /// The dark theme.
         Dark = "dark",
-        /// Light.
+        /// The light theme.
         Light = "light",
-        /// Dark, colorblind-friendly.
+        /// The dark theme with colorblind-friendly colors.
         DarkDaltonized = "dark-daltonized",
-        /// Light, colorblind-friendly.
+        /// The light theme with colorblind-friendly colors.
         LightDaltonized = "light-daltonized",
-        /// Dark, ANSI colors only.
+        /// The dark theme using only your terminal's ANSI color palette.
         DarkAnsi = "dark-ansi",
-        /// Light, ANSI colors only.
+        /// The light theme using only your terminal's ANSI color palette.
         LightAnsi = "light-ansi",
     }
 }
 
 string_enum! {
     /// `askUserQuestionTimeout` and `dialogExpiry`.
+    ///
+    /// Docs: [`askUserQuestionTimeout`](https://code.claude.com/docs/en/settings-reference#askuserquestiontimeout).
     pub enum DialogTimeout {
         /// 60 seconds.
         Seconds60 = "60s",
@@ -297,68 +345,82 @@ string_enum! {
 
 string_enum! {
     /// `workflowSizeGuideline`.
+    ///
+    /// Docs: [`workflowSizeGuideline`](https://code.claude.com/docs/en/settings-reference#workflowsizeguideline).
     pub enum WorkflowSize {
-        /// No guideline.
+        /// No guideline, so Claude sizes the workflow to the task.
         Unrestricted = "unrestricted",
-        /// Small workflows.
+        /// Claude aims for fewer than 5 agents.
         Small = "small",
-        /// Medium workflows.
+        /// Claude aims for fewer than 10 agents.
         Medium = "medium",
-        /// Large workflows.
+        /// Claude aims for fewer than 50 agents.
         Large = "large",
     }
 }
 
 string_enum! {
     /// `diffTool`.
+    ///
+    /// Docs: [`diffTool`](https://code.claude.com/docs/en/settings-reference#difftool).
     pub enum DiffTool {
-        /// Pick one.
+        /// Claude Code opens the diff in the IDE's diff viewer when a VS Code or JetBrains IDE
+        /// is connected.
         Auto = "auto",
-        /// The terminal.
+        /// Claude Code keeps the diff in the terminal.
         Terminal = "terminal",
     }
 }
 
 string_enum! {
     /// A value of `skillOverrides`.
+    ///
+    /// Docs: [`skillOverrides`](https://code.claude.com/docs/en/settings-reference#skilloverrides).
     pub enum SkillOverride {
-        /// Listed and invocable.
+        /// Claude sees the skill and you can type `/name`.
         On = "on",
-        /// Listed by name only.
+        /// Claude sees the skill by name without its description.
         NameOnly = "name-only",
-        /// Invocable by the user only.
+        /// Claude doesn't see the skill, but you can still type `/name`.
         UserInvocableOnly = "user-invocable-only",
-        /// Off.
+        /// Claude doesn't see the skill and `/name` is hidden from autocomplete.
         Off = "off",
     }
 }
 
 string_enum! {
     /// `spinnerVerbs.mode`.
+    ///
+    /// Docs: [`spinnerVerbs`](https://code.claude.com/docs/en/settings-reference#spinnerverbs).
     pub enum SpinnerVerbsMode {
-        /// Add to the built-in verbs.
+        /// Claude Code adds your verbs to the built-in set.
         Append = "append",
-        /// Replace them.
+        /// Claude Code shows only your verbs.
         Replace = "replace",
     }
 }
 
 string_enum! {
     /// `worktree.baseRef`.
+    ///
+    /// Docs: [`worktree.baseRef`](https://code.claude.com/docs/en/settings-reference#worktree-baseref).
     pub enum WorktreeBaseRef {
-        /// A fresh checkout of the default branch.
+        /// New worktrees branch from `origin/<default-branch>`.
         Fresh = "fresh",
-        /// The current `HEAD`.
+        /// New worktrees branch from your current local `HEAD`, including unpushed commits.
         Head = "head",
     }
 }
 
 string_enum! {
     /// `worktree.bgIsolation`.
+    ///
+    /// Docs: [`worktree.bgIsolation`](https://code.claude.com/docs/en/settings-reference#worktree-bgisolation).
     pub enum BgIsolation {
-        /// Background agents get a worktree.
+        /// Claude Code blocks `Edit` and `Write` in the main checkout until the session calls
+        /// `EnterWorktree`.
         Worktree = "worktree",
-        /// No isolation.
+        /// Background jobs edit the working copy directly.
         None = "none",
     }
 }
@@ -379,6 +441,8 @@ string_enum! {
 
 string_enum! {
     /// `sandbox.credentials.*.mode`.
+    ///
+    /// Docs: [`sandbox.credentials.files`](https://code.claude.com/docs/en/settings-reference#sandbox-credentials-files).
     pub enum CredentialMode {
         /// Hide it from sandboxed commands.
         Deny = "deny",
@@ -389,16 +453,20 @@ string_enum! {
 
 string_enum! {
     /// `voice.mode`.
+    ///
+    /// Docs: [`voice`](https://code.claude.com/docs/en/settings-reference#voice).
     pub enum VoiceMode {
-        /// Hold to talk.
+        /// You hold the dictation key while speaking and release it to stop.
         Hold = "hold",
-        /// Tap to start and stop.
+        /// You tap the key once to start recording and again to send.
         Tap = "tap",
     }
 }
 
 string_enum! {
     /// An entry of `strictPluginOnlyCustomization`.
+    ///
+    /// Docs: [`strictPluginOnlyCustomization`](https://code.claude.com/docs/en/settings-reference#strictpluginonlycustomization).
     pub enum CustomizationKind {
         /// Skills.
         Skills = "skills",
@@ -413,26 +481,37 @@ string_enum! {
 
 string_enum! {
     /// `availableModelsMatch`.
+    ///
+    /// Docs: [`availableModelsMatch`](https://code.claude.com/docs/en/settings-reference#availablemodelsmatch).
     pub enum ModelMatch {
-        /// An entry permits model IDs that extend it.
+        /// A model ID entry permits its version and any model ID that extends it with another
+        /// segment.
         Prefix = "prefix",
-        /// An entry permits only the version it names.
+        /// A model ID entry permits only the version it names, so `"claude-opus-5"` permits
+        /// Opus 5 but not `claude-opus-5-5`. An entry such as `"claude-opus-4-5"` also permits
+        /// its dated Anthropic model ID `claude-opus-4-5-20251101`. A family alias such as
+        /// `"opus"` still permits the whole family, and `best`, `opusplan`, and `default`
+        /// entries are ignored.
         Exact = "exact",
     }
 }
 
 string_enum! {
     /// `promptCacheTtl` and `subagentPromptCacheTtl`.
+    ///
+    /// Docs: [`promptCacheTtl`](https://code.claude.com/docs/en/settings-reference#promptcachettl).
     pub enum CacheTtl {
-        /// Five minutes.
+        /// The cache holds for five minutes.
         Minutes5 = "5m",
-        /// One hour.
+        /// The cache holds for an hour.
         Hour1 = "1h",
     }
 }
 
 string_enum! {
     /// `keybindingFlavor`.
+    ///
+    /// Docs: [`keybindingFlavor`](https://code.claude.com/docs/en/settings-reference#keybindingflavor).
     pub enum KeybindingFlavor {
         /// Claude Code's own bindings.
         Classic = "classic",
@@ -443,66 +522,97 @@ string_enum! {
 
 string_enum! {
     /// `timeFormat`. A strftime pattern (any value with a `%`) is `Other`.
+    ///
+    /// Docs: [`timeFormat`](https://code.claude.com/docs/en/settings-reference#timeformat).
     pub enum TimeFormat {
-        /// Each time's built-in format.
+        /// The same as unset; each time keeps its built-in format, which follows your locale on
+        /// the turn duration message.
         Auto = "auto",
         /// A 12-hour clock.
         Hour12 = "12-hour",
         /// A 24-hour clock.
         Hour24 = "24-hour",
-        /// A 24-hour clock in UTC (`18:05Z`).
+        /// A 24-hour clock in UTC with `Z` after the minutes, such as `18:05Z`; Claude Code
+        /// ignores [`timeZone`](https://code.claude.com/docs/en/settings-reference#timezone)
+        /// for this preset.
         Hour24Utc = "24-hour-utc",
     }
 }
 
 string_enum! {
     /// `crossSessionInbound`.
+    ///
+    /// Docs: [`crossSessionInbound`](https://code.claude.com/docs/en/settings-reference#crosssessioninbound).
     pub enum InboundMode {
-        /// Deliver messages from other sessions.
+        /// Claude Code delivers the message to Claude.
         Accept = "accept",
-        /// Hold them for review.
+        /// Claude Code shows a notice for the message without delivering it.
         Hold = "hold",
-        /// Drop them.
+        /// Claude Code drops the message.
         Refuse = "refuse",
     }
 }
 
 string_enum! {
     /// `feedbackDrafts`.
+    ///
+    /// Docs: [`feedbackDrafts`](https://code.claude.com/docs/en/settings-reference#feedbackdrafts).
     pub enum FeedbackDrafts {
-        /// Show a card when Claude queues a draft.
+        /// Claude Code shows a card above the prompt when Claude queues a draft, up to [three
+        /// cards in a
+        /// session](https://code.claude.com/docs/en/tools-reference#what-you-see-when-claude-drafts)
+        /// by default.
         Notify = "notify",
-        /// Draft without a card.
+        /// Claude drafts without a card. You see the count of queued drafts in the prompt
+        /// footer and review them in `/feedback`.
         Quiet = "quiet",
-        /// No drafts.
+        /// Claude Code removes the SendFeedback tool, so Claude can't queue drafts.
         Off = "off",
     }
 }
 
 string_enum! {
     /// An entry of `allowedProviders`.
+    ///
+    /// Docs: [`allowedProviders`](https://code.claude.com/docs/en/settings-reference#allowedproviders).
     pub enum Provider {
-        /// The Anthropic API.
+        /// The Anthropic API on Anthropic's own host, through a claude.ai or Console sign-in or
+        /// an API key. Pair it with
+        /// [`forceLoginMethod`](https://code.claude.com/docs/en/settings-reference#forceloginmethod)
+        /// or
+        /// [`forceLoginOrgUUID`](https://code.claude.com/docs/en/settings-reference#forceloginorguuid)
+        /// to also restrict the sign-in.
         Anthropic = "anthropic",
-        /// Amazon Bedrock.
+        /// [Amazon Bedrock](https://code.claude.com/docs/en/amazon-bedrock).
         Bedrock = "bedrock",
-        /// Google Cloud's Agent Platform (Vertex AI).
+        /// [Google Cloud's Agent Platform](https://code.claude.com/docs/en/google-vertex-ai),
+        /// formerly Vertex AI.
         Vertex = "vertex",
-        /// Microsoft Foundry.
+        /// [Microsoft Foundry](https://code.claude.com/docs/en/microsoft-foundry).
         Foundry = "foundry",
-        /// Claude Platform on AWS.
+        /// [Claude Platform on AWS](https://code.claude.com/docs/en/claude-platform-on-aws).
         AnthropicAws = "anthropicAws",
-        /// The Bedrock Mantle endpoint.
+        /// The Amazon Bedrock [Mantle
+        /// endpoint](https://code.claude.com/docs/en/amazon-bedrock#use-the-mantle-endpoint). A
+        /// session that [runs Mantle alongside the Invoke
+        /// API](https://code.claude.com/docs/en/amazon-bedrock#run-mantle-alongside-the-invoke-api)
+        /// uses both providers, so list `"bedrock"` and `"mantle"` together for it.
         Mantle = "mantle",
-        /// An API on another host (an LLM gateway).
+        /// The Anthropic API or a cloud provider's API sent to another host, such as an [LLM
+        /// gateway](https://code.claude.com/docs/en/llm-gateway) named by `ANTHROPIC_BASE_URL`
+        /// or by a provider's endpoint variable such as `ANTHROPIC_BEDROCK_BASE_URL`. Claude
+        /// Code admits it only for the exact value a managed
+        /// [`env`](https://code.claude.com/docs/en/settings-reference#env) block pins.
         CustomEndpoint = "customEndpoint",
-        /// A Cloud gateway sign-in.
+        /// A [Cloud gateway](https://code.claude.com/docs/en/claude-apps-gateway) sign-in.
         Gateway = "gateway",
     }
 }
 
 string_enum! {
     /// `spellcheck.checker`.
+    ///
+    /// Docs: [`spellcheck`](https://code.claude.com/docs/en/settings-reference#spellcheck).
     pub enum SpellChecker {
         /// The first one found on `PATH`.
         Auto = "auto",
@@ -517,6 +627,8 @@ string_enum! {
 
 string_enum! {
     /// A marketplace or plugin source's `source`.
+    ///
+    /// Docs: [`extraKnownMarketplaces`](https://code.claude.com/docs/en/settings-reference#extraknownmarketplaces).
     pub enum SourceKind {
         /// A URL to a marketplace file.
         Url = "url",
@@ -545,78 +657,166 @@ string_enum! {
 
 string_enum! {
     /// A hook event: a key of `hooks`.
+    ///
+    /// Docs: [settings reference](https://code.claude.com/docs/en/hooks#hook-events).
     pub enum HookEvent {
-        /// Before a tool runs.
+        /// Runs after Claude creates tool parameters and before processing the tool call.
+        ///
+        /// Docs: [`PreToolUse`](https://code.claude.com/docs/en/hooks#pretooluse).
         PreToolUse = "PreToolUse",
-        /// After a tool succeeds.
+        /// Runs immediately after a tool completes successfully.
+        ///
+        /// Docs: [`PostToolUse`](https://code.claude.com/docs/en/hooks#posttooluse).
         PostToolUse = "PostToolUse",
-        /// After a tool fails.
+        /// Runs when a tool that started executing fails: the tool threw an error, or an MCP
+        /// tool returned an error result.
+        ///
+        /// Docs: [`PostToolUseFailure`](https://code.claude.com/docs/en/hooks#posttoolusefailure).
         PostToolUseFailure = "PostToolUseFailure",
-        /// After a batch of tool calls.
+        /// Runs once after every tool call in a batch has resolved, before Claude Code sends
+        /// the next request to the model.
+        ///
+        /// Docs: [`PostToolBatch`](https://code.claude.com/docs/en/hooks#posttoolbatch).
         PostToolBatch = "PostToolBatch",
-        /// When a permission dialog would show.
+        /// Runs when Claude Code is about to ask you for permission to use a tool.
+        ///
+        /// Docs: [`PermissionRequest`](https://code.claude.com/docs/en/hooks#permissionrequest).
         PermissionRequest = "PermissionRequest",
-        /// When the auto-mode classifier denies a tool call.
+        /// Runs when [auto
+        /// mode](https://code.claude.com/docs/en/permission-modes#eliminate-prompts-with-auto-mode)
+        /// denies a tool call, including when it denies without a classifier verdict because [a
+        /// safety check separate from auto mode refused the classifier's own
+        /// request](https://code.claude.com/docs/en/errors#auto-mode-cannot-determine-the-safety-of-an-action)
+        /// or its response didn't parse.
+        ///
+        /// Docs: [`PermissionDenied`](https://code.claude.com/docs/en/hooks#permissiondenied).
         PermissionDenied = "PermissionDenied",
-        /// On a notification.
+        /// Runs when Claude Code sends notifications.
+        ///
+        /// Docs: [`Notification`](https://code.claude.com/docs/en/hooks#notification).
         Notification = "Notification",
-        /// When the user submits a prompt.
+        /// Runs when a prompt is submitted, before Claude processes it.
+        ///
+        /// Docs: [`UserPromptSubmit`](https://code.claude.com/docs/en/hooks#userpromptsubmit).
         UserPromptSubmit = "UserPromptSubmit",
-        /// When a typed command expands into a prompt.
+        /// Runs when a user-typed command expands into a prompt before reaching Claude.
+        ///
+        /// Docs: [`UserPromptExpansion`](https://code.claude.com/docs/en/hooks#userpromptexpansion).
         UserPromptExpansion = "UserPromptExpansion",
-        /// When the agent finishes responding (not on interrupt).
+        /// Runs when the main Claude Code agent has finished responding.
+        ///
+        /// Docs: [`Stop`](https://code.claude.com/docs/en/hooks#stop).
         Stop = "Stop",
-        /// When a turn ends on an API error.
+        /// Runs instead of [Stop](https://code.claude.com/docs/en/hooks#stop) when the turn
+        /// ends due to an API error.
+        ///
+        /// Docs: [`StopFailure`](https://code.claude.com/docs/en/hooks#stopfailure).
         StopFailure = "StopFailure",
-        /// When a subagent starts.
+        /// Runs when Claude spawns a subagent with the Agent tool, when Claude [resumes a
+        /// subagent](https://code.claude.com/docs/en/sub-agents#resume-subagents), and each
+        /// time an in-process [agent team](https://code.claude.com/docs/en/agent-teams)
+        /// teammate handles a new message.
+        ///
+        /// Docs: [`SubagentStart`](https://code.claude.com/docs/en/hooks#subagentstart).
         SubagentStart = "SubagentStart",
-        /// When a subagent stops.
+        /// Runs when a Claude Code subagent has finished responding.
+        ///
+        /// Docs: [`SubagentStop`](https://code.claude.com/docs/en/hooks#subagentstop).
         SubagentStop = "SubagentStop",
-        /// Before compaction.
+        /// Runs before Claude Code is about to run a compact operation.
+        ///
+        /// Docs: [`PreCompact`](https://code.claude.com/docs/en/hooks#precompact).
         PreCompact = "PreCompact",
-        /// After compaction.
+        /// Runs after Claude Code completes a compact operation.
+        ///
+        /// Docs: [`PostCompact`](https://code.claude.com/docs/en/hooks#postcompact).
         PostCompact = "PostCompact",
-        /// When an MCP server asks for input.
+        /// Runs when an MCP server requests user input mid-task.
+        ///
+        /// Docs: [`Elicitation`](https://code.claude.com/docs/en/hooks#elicitation).
         Elicitation = "Elicitation",
-        /// When the user answers an elicitation.
+        /// Runs after a user responds to an MCP elicitation.
+        ///
+        /// Docs: [`ElicitationResult`](https://code.claude.com/docs/en/hooks#elicitationresult).
         ElicitationResult = "ElicitationResult",
-        /// When an agent-team teammate is about to go idle.
+        /// Runs when an [agent team](https://code.claude.com/docs/en/agent-teams) teammate is
+        /// about to go idle after finishing its turn.
+        ///
+        /// Docs: [`TeammateIdle`](https://code.claude.com/docs/en/hooks#teammateidle).
         TeammateIdle = "TeammateIdle",
-        /// When a task is created.
+        /// Runs when a task is being created via the `TaskCreate` tool.
+        ///
+        /// Docs: [`TaskCreated`](https://code.claude.com/docs/en/hooks#taskcreated).
         TaskCreated = "TaskCreated",
-        /// When a task completes.
+        /// Runs when a task is being marked as completed.
+        ///
+        /// Docs: [`TaskCompleted`](https://code.claude.com/docs/en/hooks#taskcompleted).
         TaskCompleted = "TaskCompleted",
-        /// On repository initialization (`--init`) or maintenance (undocumented).
+        /// Fires only when you launch Claude Code with `--init-only`, or with `--init` or
+        /// `--maintenance` in [non-interactive mode](https://code.claude.com/docs/en/headless)
+        /// with the `-p` flag.
+        ///
+        /// Docs: [`Setup`](https://code.claude.com/docs/en/hooks#setup).
         Setup = "Setup",
-        /// When an instructions file loads.
+        /// Fires when a `CLAUDE.md` or `.claude/rules/*.md` file is loaded into context.
+        ///
+        /// Docs: [`InstructionsLoaded`](https://code.claude.com/docs/en/hooks#instructionsloaded).
         InstructionsLoaded = "InstructionsLoaded",
-        /// When the working directory changes.
+        /// Runs when a shell command in the main conversation changes the working directory,
+        /// for example when Claude executes a `cd` command.
+        ///
+        /// Docs: [`CwdChanged`](https://code.claude.com/docs/en/hooks#cwdchanged).
         CwdChanged = "CwdChanged",
-        /// When a watched file changes.
+        /// Runs when a watched file changes on disk.
+        ///
+        /// Docs: [`FileChanged`](https://code.claude.com/docs/en/hooks#filechanged).
         FileChanged = "FileChanged",
-        /// When settings or skill files change during a session.
+        /// Runs when a configuration file changes during a session.
+        ///
+        /// Docs: [`ConfigChange`](https://code.claude.com/docs/en/hooks#configchange).
         ConfigChange = "ConfigChange",
-        /// When a worktree is created.
+        /// Runs when Claude Code creates a worktree in cases such as these:
+        ///
+        /// Docs: [`WorktreeCreate`](https://code.claude.com/docs/en/hooks#worktreecreate).
         WorktreeCreate = "WorktreeCreate",
-        /// When a worktree is removed.
+        /// Runs when Claude Code cleans up a worktree that your
+        /// [`WorktreeCreate`](https://code.claude.com/docs/en/hooks#worktreecreate) hook
+        /// created.
+        ///
+        /// Docs: [`WorktreeRemove`](https://code.claude.com/docs/en/hooks#worktreeremove).
         WorktreeRemove = "WorktreeRemove",
-        /// When a session starts.
+        /// Runs when Claude Code starts a new session or resumes an existing session.
+        ///
+        /// Docs: [`SessionStart`](https://code.claude.com/docs/en/hooks#sessionstart).
         SessionStart = "SessionStart",
-        /// When a session ends.
+        /// Runs when a Claude Code session ends.
+        ///
+        /// Docs: [`SessionEnd`](https://code.claude.com/docs/en/hooks#sessionend).
         SessionEnd = "SessionEnd",
-        /// Before the model switches.
+        /// Runs before Claude Code applies a model switch that you or a client requested.
+        ///
+        /// Docs: [`PreModelSwitch`](https://code.claude.com/docs/en/hooks#premodelswitch).
         PreModelSwitch = "PreModelSwitch",
-        /// After the model switches.
+        /// Runs after the session's model changes.
+        ///
+        /// Docs: [`PostModelSwitch`](https://code.claude.com/docs/en/hooks#postmodelswitch).
         PostModelSwitch = "PostModelSwitch",
-        /// While assistant text is displayed.
+        /// Runs while an assistant message streams to the screen.
+        ///
+        /// Docs: [`MessageDisplay`](https://code.claude.com/docs/en/hooks#messagedisplay).
         MessageDisplay = "MessageDisplay",
-        /// After `/add-dir` registers a working directory (undocumented).
+        /// Runs after you add a working directory mid-session with the `/add-dir` command, or
+        /// after an SDK client adds one with the `register_repo_root` control request.
+        ///
+        /// Docs: [`DirectoryAdded`](https://code.claude.com/docs/en/hooks#directoryadded).
         DirectoryAdded = "DirectoryAdded",
     }
 }
 
 string_enum! {
     /// A hook's `onFailure`.
+    ///
+    /// Docs: [`hook.command.onFailure`](https://code.claude.com/docs/en/hooks#command-hook-fields).
     pub enum HookOnFailure {
         /// The action goes ahead.
         Continue = "continue",
@@ -627,6 +827,8 @@ string_enum! {
 
 string_enum! {
     /// A credential's `onExtractNoMatch`.
+    ///
+    /// Docs: [`sandbox.credentials.files.onExtractNoMatch`](https://code.claude.com/docs/en/settings-reference#mask-fields-for-files).
     pub enum ExtractNoMatch {
         /// Leave it unmasked.
         Warn = "warn",
@@ -639,6 +841,8 @@ string_enum! {
 
 string_enum! {
     /// A credential's `decode`.
+    ///
+    /// Docs: [`sandbox.credentials.files.decode`](https://code.claude.com/docs/en/settings-reference#mask-fields-for-files).
     pub enum TokenDecode {
         /// JSON Web Tokens.
         Jwt = "jwt",
@@ -647,10 +851,13 @@ string_enum! {
 
 string_enum! {
     /// A value of `sandbox.credentials.sigv4`.
+    ///
+    /// Docs: [`sandbox.credentials.sigv4`](https://code.claude.com/docs/en/settings-reference#sandbox-credentials-sigv4).
     pub enum Sigv4Action {
-        /// Fail the request.
+        /// The proxy fails the request.
         Deny = "deny",
-        /// Forward it signed with the placeholder.
+        /// The proxy forwards the request signed with the masked placeholder, so the tool
+        /// receives AWS's own rejection.
         Passthrough = "passthrough",
     }
 }

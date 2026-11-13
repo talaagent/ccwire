@@ -3,8 +3,8 @@
 #![allow(clippy::unwrap_used, reason = "test bodies")]
 
 use claude_code_settings::{
-    CommandHook, CompactWindow, EffortLevel, Hook, HookEvent, HookMatcher, PermissionMode,
-    Settings, merge_values,
+    AttributionSetting, ChannelPluginEntry, CommandHook, CompactWindow, EffortLevel, Hook,
+    HookEvent, HookMatcher, ManagedMcpServers, PermissionMode, Settings, SpinnerTip, merge_values,
 };
 use serde_json::{Value, json};
 
@@ -282,5 +282,53 @@ fn merge_values_layers_raw_documents() {
     assert_eq!(
         lower,
         json!({"permissions": {"allow": ["Read", "Edit"]}, "model": "opus"})
+    );
+}
+
+#[test]
+fn alternative_shapes_round_trip() {
+    let doc = json!({
+        "attribution": false,
+        "allowedChannelPlugins": ["telegram@official", {"marketplace": "m", "plugin": "p"}],
+        "managedMcpServers": {"docs": {"type": "http", "url": "https://mcp.example.com"}},
+        "spinnerTipsOverride": {"tips": ["plain", {"id": "a", "text": "b", "priority": -2}]},
+        "strictPluginOnlyCustomization": true,
+        "forceLoginOrgUUID": "org",
+        "enabledPlugins": {"a@m": true, "b@m": ["1.0.0"]},
+        "modelSettings": {"m": {"autoCompactWindow": 300_000}},
+    });
+    let s = settings(doc.clone());
+    assert_eq!(s.unknown_keys(), Vec::<String>::new());
+    assert_eq!(serde_json::to_value(&s).unwrap(), doc);
+    assert_eq!(s.attribution, Some(AttributionSetting::Flag(false)));
+    assert!(matches!(
+        s.allowed_channel_plugins.as_deref(),
+        Some([ChannelPluginEntry::Id(_), ChannelPluginEntry::Plugin(_)])
+    ));
+    assert!(matches!(
+        s.managed_mcp_servers,
+        Some(ManagedMcpServers::ByName(_))
+    ));
+    let tips = s.spinner_tips_override.unwrap().tips.unwrap();
+    assert!(matches!(
+        tips.as_slice(),
+        [SpinnerTip::Text(_), SpinnerTip::Entry(_)]
+    ));
+    assert_eq!(
+        s.model_settings.unwrap()["m"].auto_compact_window,
+        Some(CompactWindow::Tokens(300_000))
+    );
+}
+
+#[test]
+fn version_constants() {
+    assert_eq!(claude_code_settings::CLAUDE_CODE_VERSION, "2.1.322");
+    let schema_readme = include_str!("../schema/README.md");
+    assert!(
+        schema_readme.contains(&format!(
+            "Fetched: {}",
+            claude_code_settings::SCHEMA_FETCHED
+        )),
+        "SCHEMA_FETCHED doesn't match schema/README.md: run scripts/refresh-settings-schema and update it"
     );
 }
