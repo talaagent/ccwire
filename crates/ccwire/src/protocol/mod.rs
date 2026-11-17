@@ -17,6 +17,8 @@
 //!
 //! Parsing a JSON object as [`Inbound`] never fails.
 
+use alloc::{borrow::ToOwned as _, string::String};
+
 mod content;
 mod control;
 mod field;
@@ -137,7 +139,7 @@ macro_rules! tagged_enum {
                 Ok(match $crate::protocol::str_of(obj, $key) {
                     $(Some($tag) => Self::$variant($crate::protocol::from_fields(obj, skip)?),)*
                     tag => Self::Other {
-                        $tag_field: tag.unwrap_or_default().to_owned(),
+                        $tag_field: alloc::borrow::ToOwned::to_owned(tag.unwrap_or_default()),
                         raw: ::serde_json::Value::Object(obj.clone()),
                     },
                 })

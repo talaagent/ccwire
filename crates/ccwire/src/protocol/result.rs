@@ -7,6 +7,7 @@
 //! leniently: `subtype`, `result` and `errors` take any JSON, and
 //! [`super::Inbound::ends_turn`] also matches a result that didn't parse.
 
+use alloc::{borrow::ToOwned as _, string::String, vec, vec::Vec};
 use core::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};

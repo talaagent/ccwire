@@ -2,6 +2,7 @@
 //! one event, [`PartialMessage`] assembles a message's text as it streams.
 
 use alloc::collections::BTreeMap;
+use alloc::{borrow::ToOwned as _, string::String, vec::Vec};
 
 use serde_json::Value;
 

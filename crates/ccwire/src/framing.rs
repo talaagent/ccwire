@@ -17,6 +17,13 @@
 //! [`Line::terminated`] false (a writer killed mid-line leaves one); a
 //! clean EOF after a newline is just the end.
 
+use alloc::{
+    borrow::ToOwned as _,
+    format,
+    string::{String, ToString as _},
+    vec::Vec,
+};
+#[cfg(feature = "std")]
 use std::io;
 
 use serde_json::Value;
@@ -28,6 +35,7 @@ use crate::protocol::Inbound;
 pub const DEFAULT_MAX_LINE: usize = 64 * 1024 * 1024;
 
 /// How many bytes of a skipped line [`LineTooLong::head`] keeps.
+#[cfg(feature = "std")]
 const HEAD_LEN: usize = 1024;
 
 /// One line, without its newline.
@@ -75,6 +83,8 @@ impl LineTooLong {
 }
 
 /// A [`LineReader`] or [`AsyncLineReader`](https://docs.rs/ccwire/latest/ccwire/framing/struct.AsyncLineReader.html) error.
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum ReadError {
@@ -178,6 +188,7 @@ pub fn encode_line<T: serde::Serialize + ?Sized>(frame: &T) -> Result<Vec<u8>, s
 /// The splitting state shared by the sync and async readers: what it holds
 /// of the current line survives between reads, so a read can stop anywhere
 /// (and an async one can be cancelled) without losing bytes.
+#[cfg(feature = "std")]
 #[derive(Debug)]
 struct Splitter {
     buf: Vec<u8>,
@@ -187,8 +198,10 @@ struct Splitter {
     skipping: Option<u64>,
 }
 
+#[cfg(feature = "std")]
 type Split = Result<Line, LineTooLong>;
 
+#[cfg(feature = "std")]
 impl Splitter {
     fn new(max: usize, start: u64) -> Self {
         Self {
@@ -251,6 +264,7 @@ impl Splitter {
     }
 }
 
+#[cfg(feature = "std")]
 fn split_result(s: Option<Split>) -> Result<Option<Line>, ReadError> {
     match s {
         None => Ok(None),
@@ -260,12 +274,15 @@ fn split_result(s: Option<Split>) -> Result<Option<Line>, ReadError> {
 }
 
 /// Bounded lines from a [`std::io::Read`] (blocking).
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 #[derive(Debug)]
 pub struct LineReader<R> {
     r: io::BufReader<R>,
     s: Splitter,
 }
 
+#[cfg(feature = "std")]
 impl<R: io::Read> LineReader<R> {
     /// Lines of `r`, at most [`DEFAULT_MAX_LINE`] long, offsets from 0.
     pub fn new(r: R) -> Self {
@@ -506,9 +523,11 @@ mod runtime {
 mod tests {
     use super::*;
 
+    #[cfg(feature = "std")]
     /// Reads one byte at a time: every line arrives split.
     struct Trickle<'a>(&'a [u8]);
 
+    #[cfg(feature = "std")]
     impl io::Read for Trickle<'_> {
         fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
             let Some((&b, rest)) = self.0.split_first() else {
@@ -523,6 +542,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     fn all<R: io::Read>(mut r: LineReader<R>) -> Vec<Result<Line, String>> {
         let mut out = Vec::new();
         loop {
@@ -534,6 +554,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "std")]
     fn line(s: &str, end: u64, terminated: bool) -> Result<Line, String> {
         Ok(Line {
             bytes: s.as_bytes().to_vec(),
@@ -542,6 +563,7 @@ mod tests {
         })
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn splits_whatever_the_read_size() {
         let input = b"{\"a\":1}\n\n{\"b\":2}\r\nlast";
@@ -555,12 +577,14 @@ mod tests {
         assert_eq!(all(LineReader::new(Trickle(input))), want);
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn clean_eof_after_a_newline() {
         assert_eq!(all(LineReader::new(&b"x\n"[..])), vec![line("x", 2, true)]);
         assert_eq!(all(LineReader::new(&b""[..])), []);
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn a_long_line_is_skipped_and_reading_goes_on() {
         let long = format!("{{\"type\":\"result\",\"pad\":\"{}\"}}", "x".repeat(3000));
@@ -590,6 +614,7 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn a_line_at_the_limit_is_kept() {
         let r = all(LineReader::new(&b"abcd\nabcde\n"[..]).max_line_len(4));
@@ -597,6 +622,7 @@ mod tests {
         assert!(r[1].is_err());
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn offsets_count_from_the_start() {
         let mut r = LineReader::new(&b"a\nb\n"[..]).start_offset(100);

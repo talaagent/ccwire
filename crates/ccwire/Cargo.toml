@@ -17,17 +17,22 @@ categories = ["api-bindings"]
 exclude = ["tests/corpus", "tests/corpus.rs"]
 
 [features]
-default = []
+default = ["std"]
+# Everything that needs the standard library: `Options` (its argv is
+# `OsString`s), the sync `LineReader` (any `std::io::Read`) and
+# `ReadError`. Without it the crate is `no_std` + `alloc`: the `protocol`
+# types, `parse_line`, `encode_line`, `Line` and `LineTooLong`.
+std = ["serde/std", "serde_json/std", "thiserror/std"]
 # The async layers over tokio: the framing's async reader and writer, and
 # the session core. The `protocol` module and the sync framing never need it.
-runtime = ["dep:tokio"]
+runtime = ["std", "dep:tokio"]
 # Logs every `Other` and `Malformed` frame (debug and warn, with its type),
-# besides counting them (`protocol::stats`, always on).
-tracing = ["dep:tracing"]
+# besides counting them (`protocol::stats`, always on). Implies `std`.
+tracing = ["std", "dep:tracing"]
 
 [dependencies]
-serde = { workspace = true, features = ["std"] }
-serde_json = { workspace = true, features = ["std"] }
+serde.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 # Only what the session core uses: async I/O traits and buffering (io-util),
 # its channels (sync) and its reader/writer tasks (rt).
@@ -61,3 +66,7 @@ rustdoc-args = ["--cfg", "docsrs"]
 [[example]]
 name = "chat"
 required-features = ["runtime"]
+
+[[example]]
+name = "transcript"
+required-features = ["std"]
