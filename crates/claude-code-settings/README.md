@@ -28,7 +28,7 @@ does, and write the result, without hand-built JSON.
   and written back unchanged, so a file from a newer Claude Code
   round-trips.
 - `Settings::merge` applies Claude Code's layer merge.
-- serde and serde_json only; no I/O.
+- serde and serde_json only; no I/O. `#![no_std]`, needs only `alloc`.
 
 This crate is not affiliated with or endorsed by Anthropic.
 

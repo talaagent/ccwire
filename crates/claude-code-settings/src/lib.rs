@@ -19,7 +19,8 @@
 //! - [`Settings::unknown_keys`]: the keys a document holds that this crate
 //!   doesn't model.
 //!
-//! The crate depends on serde and serde_json only, and does no I/O. It is
+//! The crate depends on serde and serde_json only, does no I/O, and is
+//! `#![no_std]` (it needs only `alloc`). It is
 //! not affiliated with or endorsed by Anthropic.
 //!
 //! [settings reference]: https://code.claude.com/docs/en/settings-reference
@@ -168,6 +169,7 @@
     reason = "the docs quote Claude Code's settings reference, product names and all"
 )]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![no_std]
 
 extern crate alloc;
 
