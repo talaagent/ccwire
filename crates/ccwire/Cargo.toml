@@ -26,8 +26,8 @@ runtime = ["dep:tokio"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-serde.workspace = true
-serde_json.workspace = true
+serde = { workspace = true, features = ["std"] }
+serde_json = { workspace = true, features = ["std"] }
 thiserror.workspace = true
 # Only what the session core uses: async I/O traits and buffering (io-util),
 # its channels (sync) and its reader/writer tasks (rt).

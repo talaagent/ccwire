@@ -135,6 +135,20 @@ jobs:
       - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --all-features --locked
       - run: cargo +${{ steps.msrv.outputs.version }} build --workspace --locked
 
+  no-std:
+    name: no_std build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: thumbv7em-none-eabihf
+      - uses: Swatinem/rust-cache@v2
+      # claude-code-settings is no_std + alloc.
+      - run: cargo build -p claude-code-settings --no-default-features --target thumbv7em-none-eabihf --locked
+
   doc:
     name: docs
     if: ${{ !github.event.repository.private }}
