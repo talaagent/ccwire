@@ -146,8 +146,27 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           targets: thumbv7em-none-eabihf
       - uses: Swatinem/rust-cache@v2
-      # claude-code-settings is no_std + alloc.
-      - run: cargo build -p claude-code-settings --no-default-features --target thumbv7em-none-eabihf --locked
+      # claude-code-settings and ccwire (without its default `std`) are
+      # no_std + alloc; ccwire-oauth needs std (reqwest, tokio).
+      - run: cargo build --workspace --exclude ccwire-oauth --no-default-features --target thumbv7em-none-eabihf --locked
+
+  test-no-std:
+    name: test (no-default-features)
+    if: ${{ !github.event.repository.private }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # dtolnay/rust-toolchain master @ 2026-10-16; installs env.RUST_TOOLCHAIN (1.98.1)
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      # The no_std crates' tests on the host, without `std`: the cfg gates
+      # and the code paths a bare target builds. Tests that need std are
+      # behind `std` (or `runtime`).
+      - run: cargo clippy --workspace --exclude ccwire-oauth --all-targets --no-default-features --locked -- -D warnings
+      - run: cargo test --workspace --exclude ccwire-oauth --no-default-features --locked
 
   doc:
     name: docs

@@ -87,6 +87,8 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Field<T> {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::String;
+
     use serde_json::json;
 
     use super::Field;

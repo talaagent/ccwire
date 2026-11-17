@@ -164,10 +164,20 @@ cargo run -p ccwire --example transcript -- path/to/transcript.jsonl
 
 ## Features
 
+- `std` (on by default): `Options` (its argv is `OsString`s), the sync
+  `LineReader` (any `std::io::Read`) and `ReadError`.
 - `runtime` (off by default): the async framing and the session core, on
-  tokio (`io-util`, `sync`, `rt`).
+  tokio (`io-util`, `sync`, `rt`). Implies `std`.
 - `tracing` (off by default): log each `Other` (debug) and `Malformed` (warn)
-  frame with its type.
+  frame with its type. Implies `std`.
+
+## `no_std`
+
+With `default-features = false`, `ccwire` is `no_std` + `alloc`: the
+`protocol` types, `framing::parse_line`, `framing::encode_line`, `Line` and
+`LineTooLong`, and the `protocol::stats` counters. `claude-code-settings` is
+always `no_std` + `alloc`. `ccwire-oauth` needs std. CI builds both for
+`thumbv7em-none-eabihf` and runs their tests without default features.
 
 ## Dependencies
 

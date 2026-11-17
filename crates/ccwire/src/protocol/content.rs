@@ -1,5 +1,6 @@
 //! Content blocks of a message (the Messages API's, re-modelled).
 
+use alloc::{borrow::ToOwned as _, string::String, vec::Vec};
 use core::fmt;
 
 use serde::{Deserialize, Deserializer, Serialize, de};

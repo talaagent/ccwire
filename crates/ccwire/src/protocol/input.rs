@@ -1,5 +1,6 @@
 //! [`UserInput`]: a user message written to the CLI's stdin.
 
+use alloc::{string::String, vec::Vec};
 use serde::{Serialize, Serializer};
 use serde_json::Value;
 

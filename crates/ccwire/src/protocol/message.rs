@@ -1,6 +1,7 @@
 //! The conversation: [`Message`], and the `user`, `assistant`,
 //! `stream_event`, `rate_limit_event` and `command_lifecycle` frames.
 
+use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number, Value};
 

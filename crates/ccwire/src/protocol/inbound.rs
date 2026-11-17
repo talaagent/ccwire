@@ -1,5 +1,9 @@
 //! [`Inbound`]: one frame the CLI writes, by `type`.
 
+use alloc::{
+    borrow::ToOwned as _,
+    string::{String, ToString as _},
+};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
 

@@ -56,12 +56,17 @@
 //!
 //! | Feature | Default | Enables |
 //! | --- | --- | --- |
-//! | `runtime` | No | Tokio-based async framing and sessions |
-//! | `tracing` | No | Debug logs for unknown frames; warnings for malformed frames |
+//! | `std` | Yes | [`Options`], the sync `LineReader` and `ReadError` |
+//! | `runtime` | No | Tokio-based async framing and sessions (implies `std`) |
+//! | `tracing` | No | Debug logs for unknown frames; warnings for malformed frames (implies `std`) |
 //!
-//! Without features, protocol parsing, synchronous framing, and CLI options
-//! work without an async runtime. Checked against [`TESTED_CLI_VERSION`];
-//! unknown protocol variants and extra fields are preserved.
+//! Without `runtime`, protocol parsing, synchronous framing, and CLI options
+//! work without an async runtime. Without `std` (`default-features = false`)
+//! the crate is `no_std` + `alloc`: the [`protocol`] types and
+//! [`framing::parse_line`] / [`framing::encode_line`] remain.
+//!
+//! Checked against [`TESTED_CLI_VERSION`]; unknown protocol variants and
+//! extra fields are preserved.
 //!
 //! # License
 //!
@@ -69,16 +74,20 @@
 
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![deny(rustdoc::broken_intra_doc_links)]
+#![cfg_attr(not(feature = "std"), no_std)]
 
 extern crate alloc;
 
 pub mod framing;
+#[cfg(feature = "std")]
+#[cfg_attr(docsrs, doc(cfg(feature = "std")))]
 pub mod options;
 pub mod protocol;
 #[cfg(feature = "runtime")]
 #[cfg_attr(docsrs, doc(cfg(feature = "runtime")))]
 pub mod session;
 
+#[cfg(feature = "std")]
 pub use options::Options;
 
 /// The Claude Code version the golden corpus was recorded with: the

@@ -6,6 +6,7 @@
 //! `hook_callback` and `mcp_message`. Each is answered with a
 //! `control_response` carrying the same `request_id`.
 
+use alloc::{string::String, vec::Vec};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 

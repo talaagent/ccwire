@@ -6,10 +6,17 @@
 //! With the `tracing` feature each one is also logged: `Other` at debug,
 //! `Malformed` at warn, with its `type`.
 
-use core::sync::atomic::{AtomicU64, Ordering};
+use core::sync::atomic::Ordering;
 
-static OTHER: AtomicU64 = AtomicU64::new(0);
-static MALFORMED: AtomicU64 = AtomicU64::new(0);
+// A target without 64-bit atomics (thumbv7em, without `std`) counts in a
+// `usize`.
+#[cfg(target_has_atomic = "64")]
+use core::sync::atomic::AtomicU64 as Counter;
+#[cfg(not(target_has_atomic = "64"))]
+use core::sync::atomic::AtomicUsize as Counter;
+
+static OTHER: Counter = Counter::new(0);
+static MALFORMED: Counter = Counter::new(0);
 
 /// The counts so far.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -25,9 +32,20 @@ pub struct Counts {
 /// The counts since the process started.
 pub fn counts() -> Counts {
     Counts {
-        other: OTHER.load(Ordering::Relaxed),
-        malformed: MALFORMED.load(Ordering::Relaxed),
+        other: load(&OTHER),
+        malformed: load(&MALFORMED),
     }
+}
+
+#[cfg(target_has_atomic = "64")]
+fn load(c: &Counter) -> u64 {
+    c.load(Ordering::Relaxed)
+}
+
+#[cfg(not(target_has_atomic = "64"))]
+fn load(c: &Counter) -> u64 {
+    // usize is at most 64 bits wide.
+    c.load(Ordering::Relaxed) as u64
 }
 
 /// A frame came out as `Other`.
