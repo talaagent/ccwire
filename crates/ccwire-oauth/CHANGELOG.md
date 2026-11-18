@@ -4,6 +4,13 @@ Changes are recorded here by release-plz when preparing a release.
 
 ## [Unreleased]
 
+## [0.1.2](https://github.com/talaagent/ccwire/compare/ccwire-oauth-v0.1.1...ccwire-oauth-v0.1.2) - 2026-11-18
+
+### Added
+
+- *(ccwire)* no_std + alloc behind a default std feature ([#22](https://github.com/talaagent/ccwire/pull/22))
+- *(claude-code-settings)* no_std + alloc ([#21](https://github.com/talaagent/ccwire/pull/21))
+
 ## [0.1.1](https://github.com/talaagent/ccwire/compare/ccwire-oauth-v0.1.0...ccwire-oauth-v0.1.1) - 2026-11-07
 
 ### Other
