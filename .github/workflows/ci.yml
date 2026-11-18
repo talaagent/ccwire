@@ -39,6 +39,7 @@ jobs:
           toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: rustfmt
       - run: cargo fmt --all --check
+      # - run: cargo faster check --format github   # enable once cargo-faster >= 0.1.0 is on crates.io (needs talaagent/cargo-faster#88)
 
   clippy:
     name: clippy (${{ matrix.features.name }})
