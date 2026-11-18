@@ -1,0 +1,24 @@
+#:schema https://raw.githubusercontent.com/talaagent/cargo-faster/main/docs/cargo-faster.schema.json
+# Build-time rules for `cargo faster check`: https://github.com/talaagent/cargo-faster/blob/main/docs/cargo-faster.md#the-configuration-file
+
+# Every crate here is edited often (git log, last 6 months: ccwire 61 files,
+# ccwire-oauth 34, claude-code-settings 58 with its ccwire-settings history).
+hot = ["ccwire", "ccwire-oauth", "claude-code-settings"]
+
+[[layer]]
+crates = ["*"]
+must_not_depend_on = ["tala-*"]
+reason = "standalone public libraries; tala-agent depends on them, never the reverse"
+
+# Measured 2026-11-18 with `cargo faster check --timings` in `nix develop`
+# on a shared 32-core dev box (load ~75, shared jobserver), cold target dir;
+# larger of two runs: cold check 27.2s, edit ccwire 3.2s, ccwire-oauth 3.5s,
+# claude-code-settings 6.0s; critical path 1 workspace crate (ccwire-oauth in
+# one run, claude-code-settings in the other); 1 duplicated crate on the host
+# (base64). Budgets are measured x1.25, rounded up.
+[budgets]
+cold_check_secs = 34
+edit_rebuild_secs = { ccwire = 4, ccwire-oauth = 5, claude-code-settings = 8 }
+critical_path_max_crates = 1
+no_new_critical_crates = ["ccwire-oauth", "claude-code-settings"]
+max_duplicate_versions = 2
