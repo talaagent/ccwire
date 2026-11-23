@@ -4,6 +4,18 @@ Changes are recorded here by release-plz when preparing a release.
 
 ## [Unreleased]
 
+## [0.1.3](https://github.com/talaagent/ccwire/compare/v0.1.2...v0.1.3) - 2026-11-23
+
+### Added
+
+- *(ccwire)* no_std + alloc behind a default std feature ([#22](https://github.com/talaagent/ccwire/pull/22))
+- *(claude-code-settings)* no_std + alloc ([#21](https://github.com/talaagent/ccwire/pull/21))
+
+### Other
+
+- rename ccwire-settings, document every key, standalone-crate API ([#18](https://github.com/talaagent/ccwire/pull/18))
+- Claude Code's settings.json as Rust types ([#16](https://github.com/talaagent/ccwire/pull/16))
+
 ## [0.1.2](https://github.com/talaagent/ccwire/compare/v0.1.1...v0.1.2) - 2026-11-07
 
 ### Other
