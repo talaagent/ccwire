@@ -28,6 +28,9 @@
           version = (lib.importTOML ./crates/ccwire/Cargo.toml).package.version;
           src = lib.cleanSource ./.;
           cargoLock.lockFile = ./Cargo.lock;
+          # aws-lc-sys: nixpkgs' cargo hook sets AWS_LC_SYS_USE_SYSTEM=1 (NixOS/nixpkgs#570938).
+          nativeBuildInputs = [ pkgs.pkg-config ];
+          buildInputs = [ pkgs.aws-lc ];
           cargoBuildFlags = [ "--workspace" "--all-features" ];
           useNextest = true;
           cargoTestFlags = [ "--workspace" "--all-features" ];
